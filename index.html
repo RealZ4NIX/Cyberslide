@@ -249,6 +249,61 @@
   @keyframes pop { from { transform: scale(1.5); } to { transform: scale(1); } }
   @keyframes toast { 0% { opacity: 0; transform: translateX(30px); } 8% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
   @keyframes blink { 50% { opacity: .35; } }
+  /* all tricks: normal tricks on the left, specials on the right, so everything fits without scrolling */
+  #tricks .panel { width: min(1180px, 100%); gap: 10px; }
+  .tr-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 28px; align-items: center; }
+  .tr-cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 4px 26px; align-items: start; }
+  .tr-col { display: grid; gap: 2px; min-width: 0; }
+  .tr-col.sp { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2px 12px; }
+  .tr-col.sp .tr-sec { grid-column: 1 / -1; flex-wrap: wrap; }
+  .tr-col.sp .tr-sec small { margin-left: 22px; flex-basis: 100%; }
+  .tr-col.sp .tr-grid { grid-template-columns: minmax(0, 1fr); padding: 7px 10px; }
+  .tr-col.sp .tr-row { font-size: 12.5px; }
+  #tricks .tr-grid { padding: 7px 14px; gap: 0 20px; margin-top: 2px; }
+  #tricks .tr-row { line-height: 1.5; font-size: 13.5px; }
+  #tricks .tr-sec { margin-top: 4px; font-size: 17px; }
+  @media (min-width: 981px) and (max-height: 790px) {
+    #tricks.ov { padding-top: 8px; padding-bottom: 46px; }
+    #tricks .panel { gap: 6px; padding: 8px 0; }
+    #tricks .title.sm { font-size: 40px; }
+    #tricks .tr-row { line-height: 1.28; font-size: 12.5px; }
+    .tr-col.sp .tr-row { font-size: 12px; }
+    #tricks .tr-grid { padding: 5px 12px; }
+    #tricks .tr-sec { margin-top: 2px; font-size: 15px; }
+    #tricks .btn { padding-block: 8px; }
+    #tricks .hint { font-size: 12px; }
+  }
+  @media (max-width: 980px) { .tr-cols, .tr-head { grid-template-columns: minmax(0, 1fr); } .tr-col.sp { grid-template-columns: minmax(0, 1fr); } #tricks .panel { width: min(700px, 100%); } }
+  /* last 10 seconds of the 2 min run */
+  #endCount { position: absolute; left: 0; right: 0; top: 13%; text-align: center; pointer-events: none; font-family: var(--display); font-style: italic; font-size: clamp(54px, 10vw, 104px); line-height: 1; color: var(--gold); opacity: 0; font-variant-numeric: tabular-nums; text-shadow: 4px 4px 0 #7a4a00, 0 0 24px rgba(255,210,63,.65); }
+  #endCount.show { opacity: .92; animation: endpop .95s ease-out; }
+  #endCount.hot { color: #ff4d5e; font-size: clamp(66px, 12.5vw, 128px); text-shadow: 4px 4px 0 #6b0f1c, 0 0 30px rgba(255,77,94,.8); }
+  @keyframes endpop { 0% { transform: scale(1.7); opacity: 0; } 18% { transform: scale(1); opacity: 1; } 100% { transform: scale(.92); opacity: .75; } }
+  .btn:disabled { cursor: not-allowed; opacity: .5; filter: saturate(.4); }
+  #entry.lock .inits, #entry.lock .stack { opacity: .35; }
+  /* scoreboard + initials entry */
+  #board .seg, #entry .inits { justify-content: flex-start; }
+  .bd { --bc: var(--cyan); padding: 10px 14px; display: grid; gap: 2px; }
+  .bd-row { display: grid; grid-template-columns: 34px 118px minmax(0, 1fr) 62px 72px; align-items: baseline; gap: 8px; padding: 4px 6px; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); border-bottom: 1px dashed rgba(143,134,196,.18); font-variant-numeric: tabular-nums; }
+  .bd-row .rk { color: var(--dim); font-family: var(--display); font-style: italic; }
+  .bd-row .in { color: var(--paper); font-family: var(--display); letter-spacing: .12em; }
+  .bd-row .sc { color: var(--gold); font-weight: 700; text-align: right; letter-spacing: 0; }
+  .bd-row .rd { font-weight: 700; font-size: 12px; color: var(--rc, var(--dim)); }
+  .bd-row .ds { text-align: right; font-size: 12px; text-transform: none; }
+  .bd-row.top .rk { color: var(--gold); }
+  .bd-row.empty { opacity: .4; }
+  .bd-row.me { background: rgba(255,63,208,.16); box-shadow: inset 3px 0 0 var(--pink); animation: blink 1s steps(2) 4; }
+  .bd-row.me .in, .bd-row.me .rk { color: var(--pink); }
+  .inits { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 6px; }
+  .slot { display: grid; justify-items: center; gap: 2px; }
+  .slot b { font-family: var(--display); font-size: 40px; line-height: 1; width: 46px; min-height: 40px; text-align: center; color: var(--paper); background: rgba(8,4,28,.7); border-bottom: 3px solid var(--edge); padding: 6px 0 4px; cursor: pointer; }
+  .slot.all b { color: var(--gold); background: rgba(255,63,208,.22); border-bottom-color: var(--pink); }
+  .slot.on b { color: var(--gold); border-bottom-color: var(--pink); box-shadow: 0 6px 18px -6px var(--pink); text-shadow: 0 0 14px rgba(255,210,63,.5); }
+  .slot .ar { font: 700 11px var(--body); color: var(--dim); background: none; border: 0; cursor: pointer; padding: 2px 10px; }
+  .slot.on .ar { color: var(--cyan); }
+  .slot .ar:hover { color: var(--pink); }
+  #resRank { color: var(--cyan); font-weight: 700; letter-spacing: .2em; font-size: 13px; text-transform: uppercase; }
+  @media (max-width: 520px) { .bd-row { grid-template-columns: 26px 100px minmax(0, 1fr) 56px; } .slot b { width: 34px; font-size: 30px; } .bd-row .ds { display: none; } }
   @keyframes perfectpop { 0% { transform: scale(1.25); opacity: 0; } 100% { transform: none; opacity: .85; } }
   @keyframes flash { 0% { opacity: 1; } 100% { opacity: 0; } }
   @keyframes scan { to { transform: translateY(calc(100vh + 180px)); } }
@@ -259,7 +314,7 @@
     93% { transform: skewX(-10deg) translate(3px, -1px); text-shadow: -6px 0 var(--pink), 6px 0 var(--cyan); }
     95% { transform: skewX(-6deg); }
   }
-  @media (prefers-reduced-motion: reduce) { #fail.show b, #fail.show #failWhy, #fail.show #failPts, #rflash.on { animation: none; } #big.show, #big.perfect.show, #flash.on, .toast, #hudTime.low, .title, .ov::before, .btn.sel::after, .badge { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { #fail.show b, #fail.show #failWhy, #fail.show #failPts, #rflash.on { animation: none; } #big.show, #big.perfect.show, #endCount.show, #flash.on, .toast, #hudTime.low, .title, .ov::before, .btn.sel::after, .badge { animation: none; } }
 </style>
 
 <div id="game">
@@ -281,6 +336,7 @@
     <div id="specBox"><canvas id="specFx" width="187" height="44"></canvas><div class="specbar"><i id="hudSpec"></i><span id="specLbl">SPECIAL</span></div></div>
     <div id="banner"></div>
     <div id="big"></div>
+    <div id="endCount"></div>
     <div id="fail"><b id="failWord">FAIL</b><span id="failWhy"></span><span id="failPts"></span></div>
     <div id="flash"></div>
     <div id="rflash"></div>
@@ -295,6 +351,7 @@
       <div class="stack">
         <button class="btn" id="btnTimed" type="button">2 MIN RUN<small>PRESS 1 &middot; BEST <span id="bestTimed">0</span></small></button>
         <button class="btn alt" id="btnEndless" type="button">ENDLESS<small>PRESS 2 &middot; BEST <span id="bestEndless">0</span></small></button>
+        <button class="btn ghost" id="btnBoard" type="button">SCOREBOARD<small>TOP 10 RUNS</small></button>
         <button class="btn ghost" id="btnTricks" type="button">ALL TRICKS<small>INPUTS &amp; COMBOS</small></button>
         <button class="btn ghost" id="btnOptions" type="button">OPTIONS<small>AUDIO, KEYS, GRAPHICS</small></button>
       </div>
@@ -345,13 +402,17 @@
   <div class="ov" id="tricks" hidden>
     <div class="panel gut">
       <div class="crumb">Database <b>// all tricks</b></div>
-      <div class="title sm">ALL TRICKS</div>
-      <div class="hint" id="trHow"></div>
-      <div class="stack"><button class="btn alt" id="btnInput" type="button"></button></div>
-      <div class="tr-sec">FLIP TRICKS <kbd data-k="flip">A</kbd></div><div class="tr-grid brk" id="trFlip"></div>
-      <div class="tr-sec">GRAB TRICKS <kbd data-k="grab">D</kbd></div><div class="tr-grid brk" id="trGrab"></div>
-      <div class="tr-sec gold">SPECIALS <small>the special meter must be full: every trick fills it, even in the air, so you can chain specials. Specials done in a mega quarterpipe air pay double</small></div>
-      <div class="tr-grid brk" id="trSpecA"></div><div class="tr-grid brk" id="trSpecD"></div>
+      <div class="tr-head"><div class="title sm">ALL TRICKS</div><div class="hint" id="trHow"></div></div>
+      <div class="tr-cols">
+        <div class="tr-col">
+          <div class="tr-sec">FLIP TRICKS <kbd data-k="flip">A</kbd></div><div class="tr-grid brk" id="trFlip"></div>
+          <div class="tr-sec">GRAB TRICKS <kbd data-k="grab">D</kbd></div><div class="tr-grid brk" id="trGrab"></div>
+        </div>
+        <div class="tr-col sp">
+          <div class="tr-sec gold">SPECIALS <small>the special meter must be full: every trick fills it, even in the air, so you can chain specials. Specials done in a mega quarterpipe air pay double</small></div>
+          <div class="tr-grid brk" id="trSpecA"></div><div class="tr-grid brk" id="trSpecD"></div>
+        </div>
+      </div>
       <div class="stack"><button class="btn" id="btnTricksBack" type="button">BACK<small>ESC</small></button></div>
     </div>
   </div>
@@ -371,6 +432,7 @@
       <div class="crumb">Run report <b>// results</b></div>
       <div class="sub" id="resTitle">TIME UP</div>
       <div><span class="big-score" id="resScore">0</span><span class="badge" id="resBadge" hidden>NEW BEST</span></div>
+      <div id="resRank" hidden></div>
       <div class="stats brk">
         <div>Personal best <b id="resBest">0</b></div>
         <div>Best combo <b id="resCombo">0</b></div>
@@ -383,8 +445,35 @@
       </div>
       <div class="stack">
         <button class="btn" id="btnAgain" type="button">RUN AGAIN</button>
+        <button class="btn ghost" id="btnBoard2" type="button">SCOREBOARD</button>
         <button class="btn ghost" id="btnMenu2" type="button">MAIN MENU</button>
       </div>
+    </div>
+  </div>
+
+  <div class="ov" id="entry" hidden>
+    <div class="panel gut">
+      <div class="crumb">Run report <b>// new record</b></div>
+      <div class="sub" id="enSub">2 MIN RUN</div>
+      <div class="title sm">HIGH SCORE</div>
+      <div><span class="big-score" id="enScore">0</span></div>
+      <div class="hint">Type your name: up to 8 letters or digits, fewer is fine</div>
+      <div class="inits" id="enSlots"></div>
+      <div class="stack">
+        <button class="btn" id="btnEnSave" type="button">SAVE<small>SPACE</small></button>
+        <button class="btn ghost" id="btnEnSkip" type="button">SKIP<small>ESC</small></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ov" id="board" hidden>
+    <div class="panel gut">
+      <div class="crumb">Database <b>// scoreboard</b></div>
+      <div class="title sm">SCOREBOARD</div>
+      <div class="seg" id="bdTabs"><button type="button" data-m="timed" class="on">2 MIN RUN</button><button type="button" data-m="endless">ENDLESS</button></div>
+      <div class="bd brk" id="bdList"></div>
+      <div class="hint" id="bdNote"></div>
+      <div class="stack"><button class="btn" id="btnBdBack" type="button">BACK<small>ESC</small></button></div>
     </div>
   </div>
 
@@ -662,6 +751,62 @@
       else if (name === 'nav') { tone('square', 1320, t, 0.035, 0.06, sfxBus, 3500); }
       else if (name === 'sel') { tone('square', 660, t, 0.06, 0.09, sfxBus, 3200); tone('square', 990, t + 0.05, 0.09, 0.09, sfxBus, 3200); }
       else if (name === 'ui') { tone('square', 880, t, 0.06, 0.08, sfxBus); }
+      else if (name === 'warn') { tone('square', 988, t, 0.07, 0.09, sfxBus, 3000); }
+      else if (name === 'warn2') { tone('square', 1319, t, 0.09, 0.12, sfxBus, 3500); tone('square', 659, t, 0.12, 0.08, sfxBus, 2500); }
+    }
+  };
+})();
+</script>
+<script>/* CYBERSLIDE - scoreboard storage.
+   The game only talks to ND.scores (load / submit / qualifies). The data lives in a "backend" object, so the local
+   browser storage used now can be swapped for an online one later without touching the menus. */
+(function () {
+  'use strict';
+  const ND = window.ND;
+  const KEY = 'cyberslide-scores', MAX = 10, MODES = ['timed', 'endless'];
+
+  const readAll = () => {
+    let o = {};
+    try { o = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { o = {}; }
+    const out = {};
+    MODES.forEach((m) => {
+      out[m] = (Array.isArray(o[m]) ? o[m] : []).filter((x) => x && typeof x.s === 'number' && x.s > 0).slice(0, MAX);
+    });
+    return out;
+  };
+  const writeAll = (all) => { try { localStorage.setItem(KEY, JSON.stringify(all)); } catch (e) { /* storage blocked: the board just won't persist */ } };
+
+  /* backend contract: load(mode) -> Promise<entries sorted high to low>, submit(mode, entry) -> Promise<{rank, list}> */
+  const local = {
+    name: 'local',
+    scope: 'Saved on this device only.',
+    load(mode) { return Promise.resolve(readAll()[mode] || []); },
+    submit(mode, entry) {
+      const all = readAll(), list = all[mode] || [];
+      let at = list.findIndex((x) => x.s < entry.s);     // ties go below the older entry
+      if (at < 0) at = list.length;
+      list.splice(at, 0, entry);
+      all[mode] = list.slice(0, MAX); writeAll(all);
+      return Promise.resolve({ rank: at < MAX ? at + 1 : 0, list: all[mode] });
+    },
+    clear() { try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ } }
+  };
+
+  const clean = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || '???';   // names are 1 to 8 letters or digits
+
+  ND.scores = {
+    MAX, MODES,
+    backend: local,
+    load(mode) { return ND.scores.backend.load(mode); },
+    /* rank (1-based) the score would take in an already loaded list, or 0 when it would not make the board */
+    qualifies(list, score) {
+      if (!(score > 0)) return 0;
+      let at = list.findIndex((x) => x.s < score);
+      if (at < 0) at = list.length;
+      return at < MAX ? at + 1 : 0;
+    },
+    submit(mode, e) {
+      return ND.scores.backend.submit(mode, { n: clean(e.name), s: Math.round(e.score), r: e.rider, d: Math.round(e.dist || 0), t: Date.now() });
     }
   };
 })();
@@ -2817,7 +2962,10 @@
       this.heading += this.hv * dt;
       if (!steer) this.heading -= this.heading * Math.min(1, 0.9 * dt);
       const wx = (ND.wallSum(this.x + 1, this.s) - ND.wallSum(this.x - 1, this.s)) / 2;   // sideways slope of a quarterpipe wall
-      if (Math.abs(wx) > 0.3) this.heading -= Math.sign(wx) * Math.min(3.2, 3.2 * (Math.abs(wx) - 0.2)) * dt;   // gravity pulls you back down the wall
+      // gravity pulls you back down the wall, but not while you are deliberately driving up a side quarterpipe at speed:
+      // that climb must not be pushed back before the launch point (it used to turn shallow approaches around)
+      const climbing = this.pipeCool <= 0 && this.speed > 12 && this.heading * Math.sign(wx) > 0.02;
+      if (Math.abs(wx) > 0.3 && !climbing) this.heading -= Math.sign(wx) * Math.min(3.2, 3.2 * (Math.abs(wx) - 0.2)) * dt;
       this.heading = Math.max(-1.25, Math.min(1.25, this.heading));
       const c = Math.cos(this.heading), sn = Math.abs(Math.sin(this.heading));
       const bo = this.boostNow;
@@ -2833,7 +2981,7 @@
       this.x = nx; this.s = ns;
       // driving onto a side quarterpipe catapults you straight up: as soon as you are on the curve and heading into it
       const pw = this.pipeCool <= 0 && this.speed > 12 && this.heading !== 0 ? ND.megaAt(nx, ns) : null;
-      if (pw && pw.side && Math.sin(this.heading) * pw.side > 0.04 && ND.wallSum(nx, ns) > 0.12) {
+      if (pw && pw.side && Math.sin(this.heading) * pw.side > 0.03 && ND.wallSum(nx, ns) > 0.06) {
         const hillV = (ND.base(this.x, this.s + 1) - ND.base(this.x, this.s)) * this.speed * Math.cos(this.heading);
         this.vy = hillV + pw.cap + 14; this.y = ny + this.vy * dt;
         this.state = 'air'; this.resetAir(); this.megaAir = true; this.emit('launch');
@@ -2957,7 +3105,7 @@
       this.yawRot = armed ? Math.round(yawTot / Math.PI) * Math.PI : yawTot;      // finished body spins carry into the stance
       this.yawRot -= Math.round(this.yawRot / TAU) * TAU;
       this.flipRot = 0; this.grab = null; this.clearTricks();
-      this.state = 'ride'; this.vy = 0; this.pipeCool = 0.8;
+      this.state = 'ride'; this.vy = 0; this.pipeCool = this.pipeAir ? 0.8 : 0;   // only a landing out of a pipe launch has to roll back down first; a normal jump onto the wall launches right away
       const dh = ND.H(this.x + Math.sin(this.heading), this.s + Math.cos(this.heading)) - gy;
       this.prevGv = dh * this.speed;
       this.emit('land', { air: this.airT });
@@ -3324,10 +3472,11 @@
     if (e.code === 'Escape' || act === 'pause') {
       if (optOpen) { if (e.code === 'Escape') closeOptions(); }
       else if (trOpen) { if (e.code === 'Escape') closeTricks(); }
+      else if (boardOpen) { if (e.code === 'Escape') closeBoard(); }
       else if (state === 'play') pause(); else if (state === 'pause') resume();
     }
     else if (act === 'mute') { const m = ND.audio.toggleMute(); S.mute = m; saveS(); toast(m ? 'SOUND OFF' : 'SOUND ON', 'info'); if (optOpen) buildOptions(); }
-    else if (trOpen || optOpen) return;
+    else if (trOpen || optOpen || boardOpen) return;
     else if (act === 'restart' && (state === 'play' || state === 'pause' || state === 'over')) openConfirm();
     else if (state === 'menu') { if (e.code === 'Digit1') startRun('timed'); else if (e.code === 'Digit2') startRun('endless'); }
   });
@@ -3390,6 +3539,19 @@
     specFlames(full);
     if (mode === 'timed') { const t = Math.max(0, timeLeft); el.time.textContent = Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0'); el.time.className = t < 10 ? 'low' : ''; }
     else { el.time.textContent = '∞'; el.time.className = ''; }
+  }
+
+  /* ---------- last 10 seconds of a 2 min run: big 10, 9, 8 ... countdown with a tick each second ---------- */
+  const endEl = $('endCount'); let endN = 0;
+  function endCount() {
+    if (state === 'pause' || state === 'confirm') return;                      // keep what is showing while paused
+    const n = state === 'play' && mode === 'timed' && timeLeft > 0 && timeLeft <= 10 ? Math.ceil(timeLeft) : 0;
+    if (n === endN) return;
+    endN = n; endEl.className = '';
+    if (!n) { endEl.textContent = ''; return; }
+    endEl.textContent = String(n); void endEl.offsetWidth;                      // restart the pop animation every second
+    endEl.className = 'show' + (n <= 3 ? ' hot' : '');
+    ND.audio.sfx(n <= 3 ? 'warn2' : 'warn');
   }
 
   /* ---------- perfect landing effects ---------- */
@@ -3466,8 +3628,8 @@
   };
 
   /* ---------- game flow ---------- */
-  let mode = 'timed', state = 'menu', timeLeft = 120, cd = 0, last = performance.now(), camHead = 0, camY = 0, camLook = 0;
-  const overlays = { menu: $('menu'), pause: $('pause'), result: $('result'), tricks: $('tricks'), confirm: $('confirm'), options: $('options') };
+  let mode = 'timed', state = 'menu', timeLeft = 120, cd = 0, last = performance.now(), camHead = 0, camY = 0, camLook = 0, camDown = 0;
+  const overlays = { menu: $('menu'), pause: $('pause'), result: $('result'), tricks: $('tricks'), confirm: $('confirm'), options: $('options'), entry: $('entry'), board: $('board') };
   /* ---------- rider select card ---------- */
   const rcStats = $('rcStats');
   ND.STAT_KEYS.forEach(([k, label]) => {
@@ -3502,7 +3664,9 @@
     confirm: [['\u2191\u2193', 'Select'], ['Space', 'Confirm'], ['Esc', 'Cancel']],
     tricks: [['\u2191\u2193', 'Select'], ['Space', 'Confirm'], ['Esc', 'Back']],
     options: [['\u2191\u2193', 'Select'], ['\u2190\u2192', 'Adjust'], ['Space', 'Confirm'], ['Esc', 'Back']],
-    result: [['\u2191\u2193', 'Select'], ['Space', 'Confirm'], ['@restart', 'Restart']]
+    result: [['\u2191\u2193', 'Select'], ['Space', 'Confirm'], ['@restart', 'Restart']],
+    entry: [['A-Z 0-9', 'Type'], ['Backspace', 'Delete'], ['\u2190\u2192', 'Move'], ['\u2191\u2193', 'Letter'], ['Space', 'Save'], ['Esc', 'Skip']],
+    board: [['\u2190\u2192', 'Mode'], ['Space', 'Confirm'], ['Esc', 'Back']]
   };
   function show(name, keep) {
     if (navName) navMem[navName] = navIdx;
@@ -3561,6 +3725,7 @@
   }
   function navConfirm() {
     const c = navUnits()[navIdx]; if (!c) return;
+    if (c.el.disabled) return;
     if (c.t === 'btn') { navSfx('sel'); c.el.click(); }
     else if (c.t === 'btns') { navSfx('sel'); c.bs[Math.min(navCol, c.bs.length - 1)].click(); }
     else if (c.t === 'seg') {
@@ -3570,6 +3735,7 @@
   }
   function navKey(e) {
     if (!navName) return false;
+    if (navName === 'entry') return entryKey(e);
     const c = e.code;
     if (c !== 'ArrowUp' && c !== 'ArrowDown' && c !== 'ArrowLeft' && c !== 'ArrowRight' && c !== 'Space') return false;
     e.preventDefault();
@@ -3577,6 +3743,7 @@
     if (c === 'ArrowUp' || c === 'ArrowDown') navMove(c === 'ArrowUp' ? -1 : 1);
     else if (c === 'Space') { if (!e.repeat) { swallowSpace = true; navConfirm(); } }
     else if (navName === 'menu') { if (!e.repeat) riderStep(c === 'ArrowLeft' ? -1 : 1); }
+    else if (navName === 'board') { if (!e.repeat) boardTab(c === 'ArrowLeft' ? -1 : 1); }
     else navAdjust(c === 'ArrowLeft' ? -1 : 1, e.repeat);
     return true;
   }
@@ -3601,7 +3768,7 @@
     lastP = { x: player.x, y: player.y, s: player.s };
     timeLeft = 120; cd = 3; state = 'countdown'; show(null);
     el.timeLbl.textContent = m === 'timed' ? 'TIME' : 'ENDLESS';
-    el.feed.innerHTML = ''; lastScore = -1; dispScore = 0; failT = 0; slowT = 0; el.fail.className = ''; $('rflash').className = ''; camHead = 0; camLook = 0; camY = player.y + 3.3;
+    el.feed.innerHTML = ''; lastScore = -1; dispScore = 0; failT = 0; slowT = 0; el.fail.className = ''; $('rflash').className = ''; camHead = 0; camLook = 0; camDown = 1; camY = player.y + 3.3 + CD_UP;
     snapCamera();
   }
   function openConfirm() {
@@ -3634,8 +3801,148 @@
     $('resCombo').textContent = fmt(st.bestCombo); $('resTricks').textContent = st.tricks; $('resGrinds').textContent = st.grinds;
     $('resCrash').textContent = st.crashes; $('resSpeed').textContent = Math.round(st.topSpeed * 3.6) + ' km/h';
     $('resDist').textContent = fmt(player.dist) + ' m'; $('resAir').textContent = st.bestAir.toFixed(1) + ' s';
+    $('resRank').hidden = true;
     show('result');
+    lockAgain(mode === 'timed' && timeLeft <= 0 ? 3000 : 0);   // time ran out: RUN AGAIN stays locked for 3 s so a mashed key can't skip the result
+    // a run that makes the top 10 asks for initials before the result screen is used
+    const run = { mode, score: player.score, dist: player.dist, rider: ND.riderId };
+    ND.scores.load(run.mode).then((list) => {
+      const rank = ND.scores.qualifies(list, run.score);
+      if (rank && state === 'over' && navName === 'result') openEntry(run, rank);
+    });
   }
+
+  /* RUN AGAIN is locked for a moment after time runs out, so a key still being mashed can't start a new run by accident */
+  let againTimer = 0;
+  function lockAgain(ms) {
+    clearInterval(againTimer); againTimer = 0;
+    const b = $('btnAgain'), end = performance.now() + ms;
+    const paint = () => {
+      const left = end - performance.now();
+      if (left <= 0) { clearInterval(againTimer); againTimer = 0; b.disabled = false; b.textContent = 'RUN AGAIN'; return; }
+      b.disabled = true; b.textContent = '';
+      b.appendChild(document.createTextNode('RUN AGAIN'));
+      const sm = document.createElement('small'); sm.textContent = 'READY IN ' + Math.ceil(left / 1000); b.appendChild(sm);
+    };
+    paint();
+    if (ms > 0) againTimer = setInterval(paint, 100);
+  }
+
+  /* ---------- scoreboard: top 10 per mode, initials entry ---------- */
+  const NAME_KEY = 'cyberslide-name', NAME_MAX = 8, NAME_SET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let boardOpen = false, boardFrom = 'menu', boardMode = 'timed', boardHL = null, enPend = null, enLockUntil = 0;
+  let enName = [], enCaret = 0, enFresh = false;                    // the name being typed, caret position, "remembered name still selected"
+  const loadName = () => {
+    try { return (localStorage.getItem(NAME_KEY) || localStorage.getItem('cyberslide-initials') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, NAME_MAX); } catch (e) { return ''; }
+  };
+  const enSlots = $('enSlots');
+  function paintEntry() {
+    [...enSlots.children].forEach((s, i) => {
+      const ch = enName[i] || '';
+      s.classList.toggle('on', !enFresh && i === Math.min(enCaret, NAME_MAX - 1));
+      s.classList.toggle('fill', !!ch);
+      s.classList.toggle('all', enFresh && !!ch);
+      s.querySelector('b').textContent = ch;
+    });
+    $('btnEnSave').disabled = enName.length === 0;
+  }
+  function enCycle(d) {                                              // up/down: pick the letter at the caret (an empty slot starts a new one)
+    if (enFresh) { enFresh = false; return; }
+    if (enCaret < enName.length) { const k = NAME_SET.indexOf(enName[enCaret]); enName[enCaret] = NAME_SET[(k + d + NAME_SET.length) % NAME_SET.length]; }
+    else if (enName.length < NAME_MAX) { enName.push(d > 0 ? NAME_SET[0] : NAME_SET[NAME_SET.length - 1]); enCaret = enName.length - 1; }
+  }
+  function enType(ch) {
+    if (enFresh) { enName = []; enCaret = 0; enFresh = false; }       // typing over the remembered name replaces it
+    if (enName.length < NAME_MAX) { enName.splice(enCaret, 0, ch); enCaret++; }
+    else if (enCaret < NAME_MAX) { enName[enCaret] = ch; enCaret++; }   // a full name: typing inside it replaces letters
+    else navSfx('early');                                                 // caret at the end of a full name: extra keys are ignored
+  }
+  function enBack() {
+    if (enFresh) { enName = []; enCaret = 0; enFresh = false; return; }
+    if (enCaret > 0) { enName.splice(enCaret - 1, 1); enCaret--; }
+  }
+  for (let i = 0; i < NAME_MAX; i++) {
+    const s = document.createElement('div'); s.className = 'slot';
+    s.innerHTML = '<button class="ar" type="button" tabindex="-1" aria-label="Next letter">▲</button><b></b><button class="ar" type="button" tabindex="-1" aria-label="Previous letter">▼</button>';
+    const [up, , dn] = s.children;
+    up.onclick = () => { enFresh = false; enCaret = Math.min(i, enName.length); enCycle(1); paintEntry(); navSfx('nav'); };
+    dn.onclick = () => { enFresh = false; enCaret = Math.min(i, enName.length); enCycle(-1); paintEntry(); navSfx('nav'); };
+    s.querySelector('b').onclick = () => { enFresh = false; enCaret = Math.min(i, enName.length); paintEntry(); navSfx('nav'); };
+    enSlots.appendChild(s);
+  }
+  function openEntry(run, rank) {
+    enPend = run;
+    enName = loadName().split('').filter(Boolean); enCaret = enName.length; enFresh = enName.length > 0;   // empty the first time, afterwards the remembered name
+    $('enSub').textContent = (run.mode === 'timed' ? '2 MIN RUN' : 'ENDLESS') + ' // RANK #' + rank;
+    $('enScore').textContent = fmt(run.score);
+    enLockUntil = performance.now() + 2000;   // keys still being mashed from the run must not type or save a name
+    $('entry').classList.add('lock'); setTimeout(() => $('entry').classList.remove('lock'), 2000);
+    paintEntry(); show('entry'); ND.audio.sfx('sel');
+  }
+  function saveEntry() {
+    if (!enPend || !enName.length) { navSfx('early'); return; }
+    const p = enPend, name = enName.join(''); enPend = null;
+    try { localStorage.setItem(NAME_KEY, name); } catch (e) { /* ignore */ }
+    ND.scores.submit(p.mode, { name, score: p.score, rider: p.rider, dist: p.dist }).then((res) => {
+      const r = $('resRank'); r.hidden = !res.rank; r.textContent = res.rank ? 'Scoreboard rank #' + res.rank : '';
+      openBoard('result', p.mode, res.rank ? { mode: p.mode, idx: res.rank - 1 } : null);
+    });
+  }
+  function skipEntry() { enPend = null; show('result', true); }
+  function entryKey(e) {
+    const c = e.code;
+    if (performance.now() < enLockUntil) { e.preventDefault(); if (c === 'Space') swallowSpace = true; return true; }   // brief lock after the entry screen opens
+    if (c === 'Space') {
+      e.preventDefault(); if (e.repeat) return true;
+      swallowSpace = true;
+      if (enName.length) { navSfx('sel'); saveEntry(); } else navSfx('early');   // a name needs at least one character
+      return true;
+    }
+    if (c === 'ArrowUp' || c === 'ArrowDown') { e.preventDefault(); enCycle(c === 'ArrowUp' ? 1 : -1); paintEntry(); navSfx('nav'); return true; }
+    if (c === 'ArrowLeft' || c === 'ArrowRight') {
+      e.preventDefault();
+      if (enFresh) { enFresh = false; enCaret = c === 'ArrowLeft' ? enName.length - 1 : enName.length; }
+      else enCaret = Math.max(0, Math.min(enName.length, enCaret + (c === 'ArrowLeft' ? -1 : 1)));
+      enCaret = Math.max(0, enCaret); paintEntry(); navSfx('nav');
+      return true;
+    }
+    if (c === 'Escape') { e.preventDefault(); if (!e.repeat) skipEntry(); return true; }
+    if (c === 'Backspace') { e.preventDefault(); enBack(); paintEntry(); navSfx('nav'); return true; }
+    if (e.key && /^[a-zA-Z0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      if (!e.repeat) { enType(e.key.toUpperCase()); paintEntry(); navSfx('nav'); }
+      return true;
+    }
+    return false;
+  }
+  function renderBoard() {
+    const m = boardMode;
+    $('bdTabs').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
+    $('bdNote').textContent = ND.scores.backend.scope;
+    ND.scores.load(m).then((list) => {
+      if (boardMode !== m) return;
+      const box = $('bdList'); box.textContent = '';
+      for (let i = 0; i < ND.scores.MAX; i++) {
+        const en = list[i], row = document.createElement('div');
+        row.className = 'bd-row' + (i < 3 ? ' top' : '') + (en ? '' : ' empty') + (boardHL && boardHL.mode === m && boardHL.idx === i ? ' me' : '');
+        const cell = (cls, txt) => { const s = document.createElement('span'); s.className = cls; s.textContent = txt; row.appendChild(s); return s; };
+        cell('rk', i + 1); cell('in', en ? en.n : '---'); cell('sc', en ? fmt(en.s) : '');
+        const def = en && ND.RIDERS.find((r) => r.id === en.r), rd = cell('rd', def ? def.name : '');
+        if (def) rd.style.setProperty('--rc', def.color);
+        cell('ds', en ? fmt(en.d || 0) + ' m' : '');
+        box.appendChild(row);
+      }
+    });
+  }
+  function openBoard(from, m, hl) { boardOpen = true; boardFrom = from; boardMode = m || boardMode; boardHL = hl || null; show('board'); renderBoard(); }
+  function closeBoard() { boardOpen = false; boardHL = null; show(boardFrom, true); }
+  function boardTab(d) { const M = ND.scores.MODES; boardMode = M[(M.indexOf(boardMode) + d + M.length) % M.length]; boardHL = null; renderBoard(); navSfx('nav'); }
+  $('bdTabs').querySelectorAll('button').forEach((b) => { b.onclick = () => { boardMode = b.dataset.m; boardHL = null; renderBoard(); navSfx('nav'); }; });
+  $('btnBoard').onclick = () => openBoard('menu', mode);
+  $('btnBoard2').onclick = () => openBoard('result', mode);
+  $('btnBdBack').onclick = closeBoard;
+  $('btnEnSave').onclick = saveEntry;
+  $('btnEnSkip').onclick = skipEntry;
   /* ---------- trick list ---------- */
   let trOpen = false, trFrom = 'menu', optOpen = false, optFrom = 'menu', listen = null;
   /* frost + sparkles over the special bar when it is full (low-res canvas, pixelated) */
@@ -3679,15 +3986,11 @@
     }
   }
 
-  const INPUT_KEY = 'cyberslide-input';
-  try { ND.TRICK_INPUT = localStorage.getItem(INPUT_KEY) === 'hold' ? 'hold' : 'after'; } catch (e) { ND.TRICK_INPUT = 'after'; }
+  ND.TRICK_INPUT = 'after';   // one fixed style: tap the arrows, then the trick button
+  try { localStorage.removeItem('cyberslide-input'); } catch (e) { /* ignore */ }
   function buildTricks() {
-    const hold = ND.TRICK_INPUT === 'hold';
-    $('btnInput').innerHTML = (hold ? 'INPUT: HOLD ' + ND.btnLabel('A') + ' / ' + ND.btnLabel('D') + ' FIRST' : 'INPUT: ARROWS FIRST') + '<small>CLICK TO SWITCH STYLE</small>';
-    $('trHow').innerHTML = hold
-      ? 'In the air, <b>hold</b> <kbd data-k="flip">A</kbd> (flip) or <kbd data-k="grab">D</kbd> (grab), then tap the arrows in order within half a second. Arrows you are already holding count as the first one. A diagonal is two arrows pressed together. Each trick counts once per jump. <kbd data-k="trick">S</kbd> + arrows still spins and flips your body.'
-      : 'In the air, tap the arrows in order, then press <kbd data-k="flip">A</kbd> (flip) or <kbd data-k="grab">D</kbd> (grab) within half a second. Holding an arrow works too. A diagonal is two arrows pressed together. Each trick counts once per jump. <kbd data-k="trick">S</kbd> + arrows still spins and flips your body.';
-    $('menuHow').innerHTML = hold ? 'Hold <kbd data-k="flip">A</kbd> for <b>flip tricks</b> or <kbd data-k="grab">D</kbd> for <b>grabs</b>, then tap arrows. See ALL TRICKS.' : 'Tap arrows, then <kbd data-k="flip">A</kbd> for <b>flip tricks</b> or <kbd data-k="grab">D</kbd> for <b>grabs</b>. See ALL TRICKS.';
+    $('trHow').innerHTML = 'In the air, tap the arrows in order, then press <kbd data-k="flip">A</kbd> (flip) or <kbd data-k="grab">D</kbd> (grab) within half a second. Holding an arrow works too. A diagonal is two arrows pressed together. Each trick counts once per jump. <kbd data-k="trick">S</kbd> + arrows still spins and flips your body.';
+    $('menuHow').innerHTML = 'Tap arrows, then <kbd data-k="flip">A</kbd> for <b>flip tricks</b> or <kbd data-k="grab">D</kbd> for <b>grabs</b>. See ALL TRICKS.';
     const fill = (id, list) => {
       const box = $(id); box.textContent = '';
       list.forEach((t) => {
@@ -3705,11 +4008,6 @@
     refreshKeyLabels();
   }
   buildTricks();
-  $('btnInput').onclick = () => {
-    ND.TRICK_INPUT = ND.TRICK_INPUT === 'hold' ? 'after' : 'hold';
-    try { localStorage.setItem(INPUT_KEY, ND.TRICK_INPUT); } catch (e) { /* ignore */ }
-    buildTricks();
-  };
   function openTricks(from) { trOpen = true; trFrom = from; show('tricks'); $('tricks').scrollTop = 0; }
   function closeTricks() { trOpen = false; show(trFrom, true); }
   $('btnTricks').onclick = () => openTricks('menu');
@@ -3760,8 +4058,6 @@
     slider(g, 'Effects volume', 'sfx', 0, 100, 5, (v) => v + '%', () => { ND.audio.init(); ND.audio.sfx('trick'); });
     seg(g, 'Sound', () => S.mute, (v) => { S.mute = v; }, [[false, 'ON'], [true, 'MUTED']], 'Mute with ' + keyName(primary('mute')) + ' any time');
     g = section('CONTROLS');
-    seg(g, 'Trick input style', () => ND.TRICK_INPUT, (v) => { ND.TRICK_INPUT = v; try { localStorage.setItem(INPUT_KEY, v); } catch (e) { /* ignore */ } buildTricks(); },
-      [['after', 'ARROWS FIRST'], ['hold', 'HOLD BUTTON FIRST']], 'See ALL TRICKS for how each style works');
     bool(g, 'Show trick inputs in the combo feed', 'chips');
     const hdr = orow(g, 'Key bindings', 'Click a key, then press the new one. Backspace clears it, Esc cancels.');
     const rb = mk('button', 'mini', 'RESET KEYS'); rb.type = 'button';
@@ -3829,11 +4125,15 @@
 
   /* ---------- camera ---------- */
   const sunOff = new THREE.Vector3(0, 62, -470);
+  /* during the countdown the camera sits higher and tilts down into the slope, then eases back to the normal view after the drop */
+  const CD_UP = 1.0, CD_DOWN = 5.5;
   function snapCamera() {
-    camera.position.set(player.x, player.y + 3.3, -player.s + 8);
-    camera.lookAt(player.x, player.y - 3, -player.s - 14);
+    camera.position.set(player.x, player.y + 3.3 + CD_UP * camDown, -player.s + 8);
+    camera.lookAt(player.x, player.y - 3 - CD_DOWN * camDown, -player.s - 14);
   }
   function updateCamera(dt) {
+    const cdT = state === 'countdown' ? 1 : 0;
+    camDown += (cdT - camDown) * Math.min(1, dt * (cdT ? 10 : 2.2));
     camHead += (player.heading * 0.6 - camHead) * Math.min(1, dt * 3);
     // lean the view toward where the path is heading so bends can be read early
     const pathX = Math.max(-9, Math.min(9, (ND.C(player.s + 40) - player.x) * 0.3));
@@ -3841,11 +4141,11 @@
     const dist = 8 + player.speed * 0.02;
     const tx = player.x - Math.sin(camHead) * dist;
     camera.position.x += (tx - camera.position.x) * Math.min(1, dt * 7);
-    camY += (player.y + 3.3 - camY) * Math.min(1, dt * (player.state === 'air' ? 3 : 8));
+    camY += (player.y + 3.3 + CD_UP * camDown - camY) * Math.min(1, dt * (player.state === 'air' ? 3 : 8));
     camera.position.y = camY;
     camera.position.z = -player.s + Math.cos(camHead) * dist;
     camera.up.set(-player.roll * 0.3, 1, 0).normalize();
-    camera.lookAt(player.x + Math.sin(camHead) * 10 + camLook, player.y - 2.4, -player.s - 14);
+    camera.lookAt(player.x + Math.sin(camHead) * 10 + camLook, player.y - 2.4 - CD_DOWN * camDown, -player.s - 14);
     const bf = S.fov, fov = Math.min(bf + 30, bf + (Math.max(0, Math.min(20, (player.speed - 15) * 0.55)) + 6 * player.boostNow) * S.fx) + fovKick * S.fx;
     if (Math.abs(fov - camera.fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * (fovKick > 0.5 ? 12 : 3)); camera.updateProjectionMatrix(); }
     sky.position.copy(camera.position);
@@ -3893,7 +4193,7 @@
     ND.select.setVisible(inMenu && navName === 'menu'); ND.select.update(dt);
     ND.world.update(player.s);
     ND.city.update(dt, player);
-    updateCamera(dt); updateSnow(dt); updateFx(dt); hud(dt);
+    updateCamera(dt); updateSnow(dt); updateFx(dt); hud(dt); endCount();
     const cp = camera.position.clone();
     if (shake * S.fx > 0.01) camera.position.add(new THREE.Vector3((Math.random() - 0.5) * shake * S.fx, (Math.random() - 0.5) * shake * S.fx, 0));
     renderer.render(scene, camera);
