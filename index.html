@@ -315,6 +315,83 @@
     95% { transform: skewX(-6deg); }
   }
   @media (prefers-reduced-motion: reduce) { #fail.show b, #fail.show #failWhy, #fail.show #failPts, #rflash.on { animation: none; } #big.show, #big.perfect.show, #endCount.show, #flash.on, .toast, #hudTime.low, .title, .ov::before, .btn.sel::after, .badge { animation: none; } }
+
+  /* ---------- tutorial: holo training panel ---------- */
+  .btn.tut { --bc: var(--gold); --fill: rgba(255,210,63,.12); }
+  .btn.tut.glow { animation: tutglow 1.1s ease-in-out infinite alternate; }
+  .btn.tut.glow:not(.sel) small { color: var(--gold); }
+  @keyframes tutglow { from { filter: brightness(1) saturate(1); } to { filter: brightness(1.55) saturate(1.3); } }
+
+  #tut { left: 50%; top: 10px; width: min(450px, 42vw); transform: translateX(-50%); padding: 6px 16px 7px; text-align: center; position: absolute; overflow: hidden;
+    border: 2px solid transparent;
+    background: linear-gradient(180deg, rgba(12,7,40,.92), rgba(7,4,26,.8)) padding-box, linear-gradient(90deg, var(--cyan), var(--pink) 55%, var(--gold)) border-box;
+    clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+    filter: drop-shadow(0 0 12px rgba(47,240,255,.35)); }
+  #tut::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; background: repeating-linear-gradient(0deg, rgba(47,240,255,.06) 0 1px, transparent 1px 3px); }
+  #tut::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 40%; pointer-events: none; z-index: 0; background: linear-gradient(180deg, rgba(47,240,255,.14), transparent); }
+  #tut > * { position: relative; z-index: 1; }
+  #tut .tc { position: absolute; width: 11px; height: 11px; z-index: 2; pointer-events: none; border: 0 solid var(--gold); }
+  #tut .tc.tl, #tut .tc.br { display: none; }
+  #tut .tc.tr { right: 5px; top: 5px; border-right-width: 2px; border-top-width: 2px; }
+  #tut .tc.bl { left: 5px; bottom: 5px; border-left-width: 2px; border-bottom-width: 2px; }
+  #tut .tc.br { right: 5px; bottom: 5px; border-right-width: 2px; border-bottom-width: 2px; }
+  #tut .tt-scan { position: absolute; left: -30%; top: 0; bottom: 0; width: 30%; z-index: 3; pointer-events: none; opacity: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); transform: skewX(-20deg); }
+  #tut.step .tt-scan { animation: tsweep .7s ease-out; }
+  #tut.done .tt-scan { animation: tsweep .6s ease-out; background: linear-gradient(90deg, transparent, rgba(125,255,168,.85), transparent); }
+  @keyframes tsweep { 0% { left: -30%; opacity: 1; } 100% { left: 110%; opacity: 0; } }
+  #tut.done { background: linear-gradient(180deg, rgba(8,40,30,.92), rgba(7,4,26,.8)) padding-box, linear-gradient(90deg, #7dffa8, var(--gold)) border-box; animation: tutdone .7s ease-out; }
+  @keyframes tutdone { 0% { filter: brightness(2.4) drop-shadow(0 0 22px #7dffa8); transform: translateX(-50%) scale(1.05); } 100% { filter: drop-shadow(0 0 12px rgba(47,240,255,.35)); transform: translateX(-50%); } }
+  .tt-top { display: flex; align-items: center; gap: 8px; font-size: 10px; letter-spacing: .22em; color: var(--cyan); font-weight: 700; text-transform: uppercase; }
+  .tt-top #tutChap { flex: 1; text-align: left; text-shadow: 0 0 8px rgba(47,240,255,.7); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .tt-live { width: 7px; height: 7px; background: var(--pink); box-shadow: 0 0 8px var(--pink); animation: blink .9s steps(2) infinite; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+  .tt-top #tutNum { font-family: var(--display); font-style: italic; font-size: 14px; letter-spacing: .06em; color: var(--gold); text-shadow: 0 0 10px rgba(255,210,63,.6); }
+  .tt-title { font-family: var(--display); font-style: italic; font-size: clamp(20px, 2.6vw, 27px); color: #fff; letter-spacing: .03em; margin: 2px 0 1px; line-height: 1.08; text-shadow: 2px 2px 0 var(--pink), -1px -1px 0 var(--cyan), 0 0 18px rgba(255,63,208,.5); }
+  #tut.step .tt-title { animation: tglitch .55s steps(1) 1; }
+  @keyframes tglitch { 0% { transform: translateX(-8px); opacity: .4; clip-path: inset(0 0 55% 0); } 14% { transform: translateX(6px); clip-path: inset(40% 0 0 0); } 28% { transform: translateX(-3px); opacity: 1; clip-path: none; } 42% { transform: translateX(3px); text-shadow: -3px 0 var(--cyan), 3px 0 var(--pink); } 56% { transform: none; } 100% { transform: none; } }
+  .tt-text { font-size: clamp(12px, 1.3vw, 14px); line-height: 1.5; color: var(--paper); text-shadow: 0 0 8px #000; }
+  .tt-text kbd { font: 700 1em var(--display); font-style: italic; color: #c8fbff; background: linear-gradient(180deg, #0f3447, #07182a); padding: 1px 9px 2px; margin: 0 2px; border: 1px solid var(--cyan); border-bottom-width: 3px;
+    box-shadow: 0 0 9px rgba(47,240,255,.55), inset 0 0 6px rgba(47,240,255,.25); text-shadow: 0 0 6px var(--cyan); clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px); }
+  .tt-text b { color: var(--gold); text-shadow: 0 0 8px rgba(255,210,63,.5); }
+  .tt-text .dim { color: var(--dim); font-size: .9em; }
+  .tt-pips { display: flex; justify-content: center; gap: 6px; margin: 6px 0 3px; min-height: 10px; }
+  .tt-pips i { flex: 1; max-width: 70px; height: 9px; background: rgba(8,16,40,.9); border: 1px solid rgba(47,240,255,.35); transform: skewX(-24deg); transition: background .15s, box-shadow .15s, border-color .15s; }
+  .tt-pips i.on { background: linear-gradient(90deg, var(--cyan), var(--gold)); border-color: #fff; box-shadow: 0 0 12px rgba(255,210,63,.85), 0 0 4px #fff; }
+  .tt-bar { height: 5px; background: rgba(8,16,40,.9); border: 1px solid rgba(47,240,255,.35); overflow: hidden; display: none; margin: 5px 0 3px; transform: skewX(-24deg); }
+  .tt-bar.show { display: block; }
+  .tt-bar i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--cyan) 0 6px, var(--gold) 6px 12px); box-shadow: 0 0 10px var(--cyan); }
+  .tt-foot { display: flex; justify-content: center; gap: 18px; font-size: 10px; letter-spacing: .14em; color: var(--dim); margin-top: 4px; text-transform: uppercase; }
+  .tt-foot kbd { font-size: 10px; padding: 0 6px; margin-right: 4px; }
+
+  #tutCard { position: absolute; left: 0; right: 0; top: 54%; text-align: center; opacity: 0; pointer-events: none; display: grid; justify-items: center; gap: 6px; padding: 14px 0 16px; background: radial-gradient(ellipse at center, rgba(7,4,26,.72), transparent 68%); }
+  #tutCard::before, #tutCard::after { content: ''; width: min(660px, 80vw); height: 2px; background: linear-gradient(90deg, transparent, var(--cyan), var(--pink), transparent); box-shadow: 0 0 12px var(--cyan); transform-origin: center; }
+  #tutCard small { letter-spacing: .5em; font-size: 12px; font-weight: 700; color: var(--cyan); text-shadow: 0 0 10px var(--cyan); }
+  #tutCard b { font-family: var(--display); font-style: italic; font-weight: 400; font-size: clamp(30px, 6.5vw, 64px); line-height: 1; color: #fff; text-shadow: 4px 4px 0 var(--pink), -2px -2px 0 var(--cyan), 0 0 26px rgba(255,63,208,.6); }
+  #tutCard span { font-size: clamp(13px, 1.7vw, 17px); color: var(--paper); text-shadow: 0 0 10px #000, 0 0 4px #000; letter-spacing: .04em; }
+  #tutCard.show { opacity: 1; }
+  #tutCard.show::before, #tutCard.show::after { animation: linein .6s ease-out; }
+  #tutCard.show b { animation: cardin .55s steps(1) 1; }
+  #tutCard.out { opacity: 0; transition: opacity .6s; }
+  @keyframes linein { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes cardin { 0% { transform: translateX(-14px); opacity: 0; } 20% { transform: translateX(10px); opacity: 1; clip-path: inset(0 0 50% 0); } 40% { transform: translateX(-5px); clip-path: none; } 60% { transform: translateX(4px); text-shadow: -4px 0 var(--cyan), 4px 0 var(--pink); } 100% { transform: none; } }
+
+  #tutOk { position: absolute; left: 0; right: 0; top: 25%; text-align: center; font-family: var(--display); font-style: italic; font-size: clamp(34px, 8vw, 78px); line-height: 1.05; color: #7dffa8; text-shadow: 4px 4px 0 #0a5a3a, -2px -2px 0 rgba(47,240,255,.7), 0 0 26px rgba(125,255,168,.6); opacity: 0; pointer-events: none;
+    padding: 6px 0 8px; background: linear-gradient(90deg, transparent, rgba(7,4,26,.7) 18%, rgba(7,4,26,.7) 82%, transparent); }
+  #tutOk small { display: flex; align-items: center; justify-content: center; gap: 14px; font-size: .28em; letter-spacing: .32em; color: var(--gold); text-shadow: 0 0 10px #000, 0 0 10px rgba(255,210,63,.5); margin-top: 3px; }
+  #tutOk small::before, #tutOk small::after { content: ''; width: 60px; height: 2px; background: linear-gradient(90deg, transparent, var(--gold)); }
+  #tutOk small::after { transform: scaleX(-1); }
+  #tutOk.show { animation: okpop 1.6s ease-out forwards; }
+  @keyframes okpop { 0% { opacity: 0; transform: scale(1.7); filter: brightness(2.4); } 12% { opacity: 1; transform: scale(1); filter: none; } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-16px); } }
+
+  .td-stars { display: flex; flex-wrap: wrap; gap: 8px; max-width: 540px; }
+  .td-stars span { font-family: var(--display); font-style: italic; font-size: 13px; letter-spacing: .08em; color: var(--gold); padding: 6px 14px 6px 12px; border: 1px solid var(--gold); background: linear-gradient(180deg, rgba(255,210,63,.2), rgba(255,210,63,.05));
+    box-shadow: 0 0 14px rgba(255,210,63,.4), inset 0 0 8px rgba(255,210,63,.2); text-shadow: 0 0 8px rgba(255,210,63,.7); animation: starin .45s ease-out backwards;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+  .td-stars span::before { content: '\25C6'; margin-right: 7px; font-size: .8em; }
+  .td-stars span.dim { color: var(--dim); border-color: rgba(143,134,196,.4); background: rgba(143,134,196,.08); box-shadow: none; text-shadow: none; }
+  .td-stars span.dim::before { content: '\25C7'; }
+  @keyframes starin { from { transform: scale(2.2) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  body.tutmode #hudTimeLbl, body.tutmode #hudTime { display: none; }
+  @media (prefers-reduced-motion: reduce) { .btn.tut.glow, #tut.done, #tut.step .tt-scan, #tut.step .tt-title, #tutCard.show b, #tutCard.show::before, #tutCard.show::after, #tutOk.show, .td-stars span, .tt-live { animation: none; } #tutOk.show { opacity: 1; } }
 </style>
 
 <div id="game">
@@ -335,6 +412,17 @@
     <div class="bl" id="speedBox"><div class="spd"><span id="hudSpeed">0</span><small>km/h</small></div><div class="boostbar"><i id="hudBoost"></i></div></div>
     <div id="specBox"><canvas id="specFx" width="187" height="44"></canvas><div class="specbar"><i id="hudSpec"></i><span id="specLbl">SPECIAL</span></div></div>
     <div id="banner"></div>
+    <div id="tut" hidden>
+      <i class="tc tl"></i><i class="tc tr"></i><i class="tc bl"></i><i class="tc br"></i><b class="tt-scan"></b>
+      <div class="tt-top"><span class="tt-live"></span><span id="tutChap">TRAINING</span><span id="tutNum">01 / 10</span></div>
+      <div class="tt-title" id="tutTitle">CARVE</div>
+      <div class="tt-text" id="tutText"></div>
+      <div class="tt-pips" id="tutPips"></div>
+      <div class="tt-bar"><i id="tutBar"></i></div>
+      <div class="tt-foot"><span><kbd>Enter</kbd>skip step</span><span><kbd>Esc</kbd>pause</span></div>
+    </div>
+    <div id="tutCard"><small id="tcSmall">CHAPTER 01</small><b id="tcName">THE BASICS</b><span id="tcSub"></span></div>
+    <div id="tutOk"></div>
     <div id="big"></div>
     <div id="endCount"></div>
     <div id="fail"><b id="failWord">FAIL</b><span id="failWhy"></span><span id="failPts"></span></div>
@@ -351,6 +439,7 @@
       <div class="stack">
         <button class="btn" id="btnTimed" type="button">2 MIN RUN<small>PRESS 1 &middot; BEST <span id="bestTimed">0</span></small></button>
         <button class="btn alt" id="btnEndless" type="button">ENDLESS<small>PRESS 2 &middot; BEST <span id="bestEndless">0</span></small></button>
+        <button class="btn tut" id="btnTutorial" type="button">TUTORIAL<small id="tutSub">LEARN BY DOING</small></button>
         <button class="btn ghost" id="btnBoard" type="button">SCOREBOARD<small>TOP 10 RUNS</small></button>
         <button class="btn ghost" id="btnTricks" type="button">ALL TRICKS<small>INPUTS &amp; COMBOS</small></button>
         <button class="btn ghost" id="btnOptions" type="button">OPTIONS<small>AUDIO, KEYS, GRAPHICS</small></button>
@@ -383,6 +472,21 @@
         <button class="btn ghost" id="btnMenu" type="button">MAIN MENU</button>
         <button class="btn ghost" id="btnTricks2" type="button">ALL TRICKS</button>
         <button class="btn ghost" id="btnOptions2" type="button">OPTIONS</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ov" id="tutdone" hidden>
+    <div class="panel gut">
+      <div class="crumb">Tutorial <b id="tdCrumb">// chapter clear</b></div>
+      <div><div class="sub" id="tdSub">CHAPTER 1 COMPLETE</div><div class="title sm" id="tdTitle">NICE RIDING</div></div>
+      <div class="td-stars" id="tdStars"></div>
+      <div class="hint" id="tdText"></div>
+      <div class="stack">
+        <button class="btn" id="btnTdNext" type="button">NEXT CHAPTER<small id="tdNextSub"></small></button>
+        <button class="btn alt" id="btnTdRun" type="button">PLAY 2 MIN RUN<small>GO FOR A SCORE</small></button>
+        <button class="btn ghost" id="btnTdAgain" type="button">REPLAY CHAPTER</button>
+        <button class="btn ghost" id="btnTdMenu" type="button">MAIN MENU</button>
       </div>
     </div>
   </div>
@@ -751,6 +855,9 @@
       else if (name === 'nav') { tone('square', 1320, t, 0.035, 0.06, sfxBus, 3500); }
       else if (name === 'sel') { tone('square', 660, t, 0.06, 0.09, sfxBus, 3200); tone('square', 990, t + 0.05, 0.09, 0.09, sfxBus, 3200); }
       else if (name === 'ui') { tone('square', 880, t, 0.06, 0.08, sfxBus); }
+      else if (name === 'step') { [784, 988, 1319].forEach((f, i) => { tone('triangle', f, t + i * 0.07, 0.3, 0.14, sfxBus); tone('sine', f * 2, t + i * 0.07, 0.2, 0.05, sfxBus); }); }
+      else if (name === 'tick') { tone('triangle', 1175, t, 0.12, 0.1, sfxBus); }
+      else if (name === 'fanfare') { [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => { tone('square', f, t + i * 0.08, 0.34, 0.09, sfxBus, 3200); tone('triangle', f, t + i * 0.08, 0.5, 0.12, sfxBus); }); noise(t + 0.4, 0.6, 0.1, 5000, sfxBus); }
       else if (name === 'warn') { tone('square', 988, t, 0.07, 0.09, sfxBus, 3000); }
       else if (name === 'warn2') { tone('square', 1319, t, 0.09, 0.12, sfxBus, 3500); tone('square', 659, t, 0.12, 0.08, sfxBus, 2500); }
     }
@@ -938,7 +1045,9 @@
   const infos = [];
   let lastDir = 1;
 
+  let plan = null;   // tutorial courses: plan(i) -> segment kind, so a short course can repeat forever
   function makeInfo(i) {
+    if (plan) { infos.push({ kind: plan(i), bend: null, c: 0, cEnd: 0, hasDip: false }); return; }
     const prev = infos[i - 1];
     // second half of a long, smooth bend
     if (prev && prev.bend && prev.bend.k1 >= i) {
@@ -1049,6 +1158,14 @@
       g.dips.push(mkDip(x, s0 + MEGA_DIP, 92, MEGA_D + r() * 0.8, 0.6));
     } else if (kind === 'pipe') {             // mega quarterpipe along one side of the course: launch off the lip, land back on the wall
       g.walls.push({ side: r() < 0.5 ? -1 : 1, s: s0 + 4, len: 270, H: 10, toe: 7.5, lip: HALF });
+    } else if (kind === 'tutramp') {          // tutorial: one friendly ramp straight ahead with a long landing slope
+      g.ramps.push({ x: cx, s: s0 + 10, len: 11, w: 9, h: 2.3 });
+      g.dips.push(mkDip(cx, s0 + 31, 66, 3.4, 0.6));
+    } else if (kind === 'tutbar') {           // tutorial: a short row of wide-spaced barriers to steer around
+      g.blocks.push(barrier(s0 + 18, cx - 6, true), barrier(s0 + 34, cx + 6, true), barrier(s0 + 50, cx - 5, true));
+    } else if (kind === 'tutrail') {          // tutorial: ramp straight into one ground rail with a ramp end
+      g.ramps.push({ x: cx, s: s0 + 6, len: 10, w: 9, h: 2.0 });
+      g.rails.push(mkRail(r, cx, s0 + 28, 36, 0, true));
     } else if (kind === 'open') {             // open stretch, two wide-spaced barriers
       g.blocks.push(barrier(s0 + 22, o(-(4 + r() * 8)), true));
       g.blocks.push(barrier(s0 + 48, o(4 + r() * 8), true));
@@ -1450,6 +1567,8 @@
   ND.world = {
     scene: null,
     init(scene) { this.scene = scene; this.clear(); },
+    /* swap in a short repeating course (tutorial) or go back to the normal hill with null */
+    setPlan(fn) { plan = fn || null; infos.length = 0; segCache.clear(); lastDir = 1; this.clear(); },
     clear() {
       active.forEach((grp) => this.drop(grp));
       active.clear();
@@ -2706,6 +2825,7 @@
     }
 
     resetAll() {
+      this.speedCap = 0; this.slide = 0; this.slideDir = 1;
       this.score = 0; this.dist = 0;
       this.stats = { tricks: 0, crashes: 0, topSpeed: 0, bestCombo: 0, grinds: 0, bestAir: 0 };
       this.combo = { pts: 0, entries: 0, timer: 0, active: false };
@@ -2918,6 +3038,7 @@
         case 'crash': this.crashStep(dt); break;
       }
       this.wasSpace = inp.space;
+      if (this.speedCap && this.speed > this.speedCap) this.speed = this.speedCap;   // tutorial: keep the pace calm
       this.dist = Math.max(0, this.s - 8);
       if (this.speed > this.stats.topSpeed) this.stats.topSpeed = this.speed;
       if (this.combo.active && this.state === 'ride') {
@@ -3246,6 +3367,11 @@
 
     pose(dt, inp) {
       const air = this.state === 'air';
+      // powerslide: braking on the ground swings the rider sideways into a skid (looks only, speed and steering are untouched)
+      const braking = !!inp && this.state === 'ride' && inp.down && this.speed > 6;
+      if (this.slide < 0.15 && inp && (inp.left || inp.right)) this.slideDir = inp.right ? 1 : -1;   // swings out to the side you are steering to
+      this.slide += ((braking ? 1 : 0) - this.slide) * Math.min(1, dt * 9);
+      if (this.slide < 0.005) this.slide = 0;
       const dh = ND.H(this.x + Math.sin(this.heading), this.s + Math.cos(this.heading)) - ND.H(this.x, this.s);
       const target = air ? Math.atan2(this.vy, Math.max(8, this.speed)) : Math.atan(dh);
       this.pitch += (target - this.pitch) * Math.min(1, dt * (air ? 4 : 12));
@@ -3273,7 +3399,7 @@
       this.board.rotation.x += (brx - this.board.rotation.x) * Math.min(1, dt * 16);
       this.board.rotation.z += (brz - this.board.rotation.z) * Math.min(1, dt * 16);
       const cr = Math.max(this.charge, this.readyT > 0 && this.state === 'ride' ? this.readyC : 0);
-      const bodyT = (-0.3 * cr) + (gr ? gr.dy : 0);
+      const bodyT = (-0.3 * cr) + (gr ? gr.dy : 0) - 0.16 * this.slide;
       this.body.rotation.y = -0.7 + bodyYaw;
       this.body.position.y += (bodyT - this.body.position.y) * Math.min(1, dt * 14);
       this.body.scale.y += ((1 - 0.2 * cr) - this.body.scale.y) * Math.min(1, dt * 14);
@@ -3282,6 +3408,7 @@
       if (this.state === 'air') { nT = -0.95; fT = 0.95; }
       if (gr) { nT = gr.n; fT = gr.f; }
       if (this.state === 'grind') { nT = -0.7; fT = 0.7; }
+      if (this.slide > 0) { nT += (-1.15 - nT) * this.slide; fT += (1.15 - fT) * this.slide; }   // arms out for balance
       this.armNear.rotation.x += (nT - this.armNear.rotation.x) * ak;
       this.armFar.rotation.x += (fT - this.armFar.rotation.x) * ak;
       this.tail.rotation.z = -1.2 + Math.min(1.1, this.speed * 0.03);
@@ -3290,8 +3417,8 @@
       this.group.position.set(this.x, this.y + 0.1, -this.s);
       this.group.rotation.set(
         this.pitch + this.flipRot + this.tFlipTot() + this.tumble.x,
-        -this.heading + this.yawRot + this.tYawTot() + this.grindYaw,
-        this.roll + this.tumble.z, 'YXZ');
+        -this.heading + this.yawRot + this.tYawTot() + this.grindYaw + this.slideDir * this.slide * 1.05,
+        this.roll + this.tumble.z - this.slideDir * this.slide * 0.22, 'YXZ');
       this.group.visible = this.invuln <= 0 || Math.floor(this.t * 16) % 2 === 0;
       const gy = ND.H(this.x, this.s), hgt = Math.max(0, this.y - gy);
       this.glow.position.set(this.x, gy + 0.07, -this.s);
@@ -3321,6 +3448,253 @@
     }
   }
   ND.Player = Player;
+})();
+</script>
+<script>/* CYBERSLIDE - tutorial: short practice courses that teach by doing.
+   Each chapter is a little repeating course (see ND.world.setPlan) plus a list of steps. A step is finished by a player event
+   or by something the rider does (hold a key, reach a side), so it never needs a perfect run: a wipeout just means try again.
+   main.js hands over what the tutorial needs from the game through attach(); everything on screen for it lives here. */
+(function () {
+  'use strict';
+  const ND = (window.ND = window.ND || {});
+  const SEG = ND.SEG || 70;
+  const $ = (id) => document.getElementById(id);
+  const PKEY = 'cyberslide-played';
+  let H = null, P = null;
+  let ci = 0, si = 0, n = 0, ctx = {}, active = false, grace = 0, finishing = 0, results = [], armed = false, lastText = '', lastStep = -1, cardTimer = 0;
+
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const kbd = (t) => '<kbd>' + esc(t) + '</kbd>';
+  const K = (a) => kbd(H ? H.key(a) : a);
+  const GLYPH = { U: '↑', D: '↓', L: '←', R: '→', UL: '↖', UR: '↗', DL: '↙', DR: '↘' };
+  /* "← then A" for a named trick, using the key the player has bound to flip / grab */
+  const trickKeys = (name) => {
+    const d = ND.TRICKS.find((t) => t.name === name);
+    if (!d) return '';
+    const b = kbd(H.btn(d.btn));
+    return d.seq.length ? d.seq.map((k) => kbd(GLYPH[k])).join(' ') + ' then ' + b : b + ' alone';
+  };
+  const isGrab = (name) => { const d = ND.TRICKS.find((t) => t.name === name); return !!d && d.btn === 'D' && !d.sp; };
+  const landed = (min) => (e, d) => e === 'land' && d.air >= min;
+  const named = (re) => (e, d) => e === 'trick' && re.test(d.name || '');
+  const wallSide = () => {
+    const k0 = Math.floor(P.s / SEG);
+    for (let k = k0; k <= k0 + 5; k++) for (const w of ND.seg(k).walls) if (w.s + w.len > P.s) return w.side;
+    return 0;
+  };
+
+  /* ---------- the curriculum ---------- */
+  const CH = [
+    {
+      id: 'basics', name: 'THE BASICS', cap: 20, plan: () => 'clear',
+      sub: 'A flat slope with nothing in the way. Take your time.',
+      steps: [
+        { badge: 'CARVE', title: 'CARVE', need: 2,
+          text: () => 'Hold ' + K('left') + ' to carve left, ' + K('right') + ' to carve right.<br><span class="dim">Reach both sides of the slope.</span>',
+          tick: (dt, c) => { if (P.x <= -3) c.l = 1; if (P.x >= 3) c.r = 1; return (c.l | 0) + (c.r | 0); } },
+        { badge: 'BRAKE', title: 'BRAKE', need: 1,
+          text: () => 'Hold ' + K('down') + ' to brake: your rider powerslides to slow down.',
+          tick: (dt, c, inp) => { if (inp.down && P.state === 'ride') c.t = (c.t || 0) + dt; c.p = (c.t || 0) / 0.7; return c.p >= 1 ? 1 : 0; }, prog: (c) => c.p || 0 },
+        { badge: 'JUMP', title: 'JUMP', need: 3, ev: landed(0.35),
+          text: () => 'Hold ' + K('space') + ' to crouch, then <b>release</b> to jump.<br><span class="dim">Land on your feet. Three jumps.</span>' },
+        { badge: 'BIG JUMP', title: 'JUMP HIGHER', need: 1, ev: landed(1.0),
+          text: () => 'The longer you hold ' + K('space') + ', the higher you go.<br><span class="dim">Crouch all the way down, then let go.</span>' },
+        { badge: 'KICKFLIP', title: 'KICKFLIP', need: 1, ev: named(/^Kickflip$/),
+          text: () => 'In the air: ' + trickKeys('Kickflip') + '.<br><span class="dim">Arrow first, button right after. Then land it.</span>' },
+        { badge: 'GRAB', title: 'GRAB', need: 3, ev: (e, d) => e === 'trick' && isGrab(d.name),
+          text: () => 'In the air: press ' + K('grab') + ' to grab the board.<br><span class="dim">Tricks count when you land. Three grabs.</span>' },
+        { badge: '180', title: '180 SPIN', need: 3, ev: named(/^\d+( SWITCH)?$/),
+          text: () => 'In the air: hold ' + K('trick') + ' and press ' + K('left') + ' or ' + K('right') + '.<br><span class="dim">Half a turn, then land. Landing backwards is fine. Three spins.</span>' },
+        { badge: 'FLIP', title: 'FRONTFLIP OR BACKFLIP', need: 1, ev: named(/(BACK|FRONT)FLIP/),
+          text: () => 'In the air: hold ' + K('trick') + ' and press ' + K('up') + ' (frontflip) or ' + K('down') + ' (backflip).<br><span class="dim">Needs a high jump. Land it clean.</span>' },
+        { badge: 'DIAGONAL', title: 'DIAGONAL FLIP', need: 1,
+          ev: (e, d) => e === 'trick' && /(BACK|FRONT)FLIP/.test(d.name || '') && d.chain >= 2,   // a flip scored right after a spin = both in one jump
+          text: () => 'Spin <b>and</b> flip at once: hold ' + K('trick') + ' and press two arrows together, like ' + K('left') + ' + ' + K('down') + '.<br><span class="dim">Needs a high jump. Land it clean.</span>' },
+        { badge: 'COMBO', title: 'COMBO & BANK', need: 1, ev: (e) => e === 'bank' && P.combo.entries >= 2,
+          text: () => 'Land <b>two tricks</b>, then ride on for 2 s without tricking: the combo <b>banks</b>.<br><span class="dim">A wipeout loses the combo, so bank it!</span>' }
+      ]
+    },
+    {
+      id: 'ramps', name: 'RAMPS & LANDINGS', cap: 22, plan: (i) => ['tutramp', 'clear', 'tutramp', 'clear', 'tutbar', 'clear'][(i + 5) % 6],
+      sub: 'Ramps give you air. Good landings give you speed.',
+      steps: [
+        { badge: 'RAMP', title: 'HIT THE RAMP', need: 1, ev: (e) => e === 'launch',
+          text: () => 'Ride straight into the ramp and fly.<br><span class="dim">Do a trick on the way up!</span>' },
+        { badge: 'PERFECT', title: 'PERFECT LANDING', need: 3, ev: (e) => e === 'perfect',
+          text: () => 'A ring shows where you will land. When it turns <b>gold</b>, tap ' + K('space') + ' just before touchdown.<br><span class="dim">A perfect landing fixes any rotation. Three of them.</span>' },
+        { badge: 'SPECIAL', title: 'SPECIAL TRICK', need: 1,
+          enter: () => P.fill(1),
+          ev: (e, d, c) => { if (e === 'respawn' && P.special < 1) P.fill(1); return e === 'special'; },
+          text: () => 'Your special meter is full. In the air: ' + trickKeys('Triple Kickflip') + '.<br><span class="dim">Specials pay big. Tricks fill the meter again.</span>' },
+        { badge: 'HAZARDS', title: 'BARRIERS', need: 1,
+          ev: (e, d, c) => { if (e === 'crash') c.hit = Math.floor(P.s / SEG); return false; },
+          tick: (dt, c) => { const k = Math.floor(P.s / SEG); if (ND.kindAt(k) === 'tutbar' && P.s - k * SEG > 58 && c.done !== k) { c.done = k; if (c.hit !== k) return 1; } return 0; },
+          text: () => 'Barriers ahead! Steer around them with ' + K('left') + ' and ' + K('right') + ', or jump over.<br><span class="dim">Hitting one is a wipeout. Get past a full row.</span>' }
+      ]
+    },
+    {
+      id: 'rails', name: 'RAILS', cap: 22, plan: (i) => (i % 2 === 1 ? 'tutrail' : 'clear'),
+      sub: 'Land on a rail to grind it. Higher rails pay more.',
+      steps: [
+        { badge: 'GRIND', title: 'LAND ON THE RAIL', need: 1, ev: (e) => e === 'grindStart',
+          text: () => 'Ride up the ramp and land on the rail. Aim for the middle.<br><span class="dim">Your board locks on and slides along it.</span>' },
+        { badge: 'SWITCH', title: 'SWITCH YOUR GRIND', need: 1, ev: named(/(BOARDSLIDE|LIPSLIDE|NOSEGRIND|TAILSLIDE) GRIND/),
+          text: () => 'While grinding, hold ' + K('trick') + ' and press an arrow to change the grind.<br><span class="dim">Every new grind adds to your combo. ' + K('space') + ' hops off.</span>' }
+      ]
+    },
+    {
+      id: 'pipe', name: 'SIDE PIPE', cap: 24, plan: (i) => (i % 4 === 1 ? 'pipe' : 'clear'),
+      sub: 'Ride up a big wall for mega air.',
+      steps: [
+        { badge: 'MEGA AIR', title: 'LAUNCH OFF THE WALL', need: 1, ev: (e) => e === 'mega',
+          text: () => {
+            const s = wallSide(), side = s < 0 ? 'left' : s > 0 ? 'right' : '';
+            return side
+              ? 'A big wall runs along your <b>' + side + '</b> side. Steer into it with ' + K(side) + ' and keep going: it throws you into the sky.<br><span class="dim">Do tricks up there, then land back on the wall.</span>'
+              : 'A big wall is coming up. Steer into it and keep going: it throws you into the sky.';
+          } }
+      ]
+    }
+  ];
+
+  const PRAISE = ['NICE!', 'CLEAN!', 'SMOOTH!', 'YES!', 'LOCKED IN!', 'SICK!', 'THERE IT IS!'];
+
+  /* ---------- on screen ---------- */
+  const el = {};
+  const grab = () => {
+    ['tut', 'tutChap', 'tutNum', 'tutTitle', 'tutText', 'tutPips', 'tutBar', 'tutCard', 'tcSmall', 'tcName', 'tcSub', 'tutOk'].forEach((k) => { el[k] = $(k); });
+  };
+  const cur = () => CH[ci].steps[si];
+  function render(force) {
+    if (!active || !el.tut) return;
+    const ch = CH[ci], st = ch.steps[si];
+    if (!st) return;
+    if (si !== lastStep || force) {
+      lastStep = si; lastText = '';
+      el.tutChap.textContent = 'TRAINING // CH.' + String(ci + 1).padStart(2, '0') + ' ' + ch.name;
+      el.tutNum.textContent = String(si + 1).padStart(2, '0') + ' / ' + String(ch.steps.length).padStart(2, '0');
+      el.tut.classList.remove('step'); void el.tut.offsetWidth; el.tut.classList.add('step');
+      el.tutTitle.textContent = st.title;
+      el.tutPips.textContent = '';
+      for (let i = 0; i < st.need; i++) el.tutPips.appendChild(document.createElement('i'));
+      el.tutBar.parentElement.classList.toggle('show', !!st.prog);
+    }
+    const t = st.text();
+    if (t !== lastText) { el.tutText.innerHTML = t; lastText = t; }
+    [...el.tutPips.children].forEach((p, i) => p.classList.toggle('on', i < n));
+    if (st.prog) el.tutBar.style.width = Math.round(Math.min(1, st.prog(ctx)) * 100) + '%';
+  }
+  function pop(text, sub) {
+    el.tutOk.innerHTML = esc(text) + (sub ? '<small>' + esc(sub) + '</small>' : '');
+    el.tutOk.className = ''; void el.tutOk.offsetWidth; el.tutOk.className = 'show';
+  }
+  let flashT = 0;
+  function flashPanel() { clearTimeout(flashT); el.tut.classList.remove('done'); void el.tut.offsetWidth; el.tut.classList.add('done'); flashT = setTimeout(() => el.tut.classList.remove('done'), 1100); }
+  function showCard(ch) {
+    clearTimeout(cardTimer);
+    el.tcSmall.textContent = 'CHAPTER ' + String(ci + 1).padStart(2, '0') + ' / ' + String(CH.length).padStart(2, '0'); el.tcName.textContent = ch.name; el.tcSub.textContent = ch.sub;
+    el.tutCard.className = ''; void el.tutCard.offsetWidth; el.tutCard.className = 'show';
+    cardTimer = setTimeout(() => { el.tutCard.className = 'out'; cardTimer = setTimeout(() => { el.tutCard.className = ''; }, 700); }, 2600);
+  }
+  function hideAll() {
+    clearTimeout(cardTimer);
+    if (el.tut) { el.tut.hidden = true; el.tutCard.className = ''; el.tutOk.className = ''; }
+  }
+
+  /* ---------- flow ---------- */
+  function enterStep() {
+    n = 0; ctx = {}; grace = 0.45; lastStep = -1;
+    const st = cur();
+    if (st.enter) st.enter(ctx);
+    render(true);
+  }
+  function stepDone(skipped) {
+    results[si] = skipped ? 'skip' : 'done';
+    const st = cur();
+    if (!skipped) {
+      n = st.need; render();
+      pop(PRAISE[Math.floor(Math.random() * PRAISE.length)], st.badge + ' LEARNED');
+      flashPanel(); H.sfx('step'); H.pulse();
+    } else H.sfx('ui');
+    si++;
+    if (si >= CH[ci].steps.length) { chapterDone(skipped); return; }
+    enterStep();
+  }
+  function chapterDone(skipped) {
+    if (skipped) { finishing = 0.05; return; }   // skipping the last step moves on without the fanfare
+    finishing = 1.7;
+    el.tutText.innerHTML = '<b>CHAPTER COMPLETE!</b>';
+    el.tutTitle.textContent = CH[ci].name;
+    el.tutPips.textContent = ''; el.tutBar.parentElement.classList.remove('show');
+    setTimeout(() => { if (active) { pop('CHAPTER CLEAR!', CH[ci].name); H.burst(); H.sfx('fanfare'); } }, 650);
+  }
+  function summary() {
+    const ch = CH[ci];
+    return {
+      ci, last: ci === CH.length - 1, name: ch.name, total: CH.length,
+      badges: ch.steps.map((s, i) => ({ badge: s.badge, ok: results[i] === 'done' })),
+      tricks: P.stats.tricks, bestCombo: P.stats.bestCombo, grinds: P.stats.grinds
+    };
+  }
+
+  ND.tutorial = {
+    CHAPTERS: CH,
+    get active() { return active; },
+    get chapter() { return ci; },
+    attach(h) { H = h; P = h.player; grab(); },
+    played() { try { return !!localStorage.getItem(PKEY); } catch (e) { return false; } },
+    markPlayed() { try { localStorage.setItem(PKEY, '1'); } catch (e) { /* ignore */ } },
+    cap() { return CH[ci].cap; },
+    /* start (or restart) chapter i: the world switches to its course, main.js resets the rider */
+    begin(i) {
+      ci = Math.max(0, Math.min(CH.length - 1, i | 0)); si = 0; results = []; finishing = 0; armed = false;
+      active = true;
+      document.body.classList.add('tutmode');
+      ND.world.setPlan(CH[ci].plan);
+      el.tut.hidden = false;
+      enterStep(); showCard(CH[ci]);
+      return CH[ci];
+    },
+    end() {
+      if (!active) return;
+      active = false; finishing = 0;
+      document.body.classList.remove('tutmode');
+      hideAll();
+      ND.world.setPlan(null);
+    },
+    event(e, d) {
+      if (!active || finishing || grace > 0) return;
+      const st = cur(); if (!st) return;
+      if (st.ev && st.ev(e, d || {}, ctx)) {
+        n++;
+        if (n >= st.need) stepDone(false); else { H.sfx('tick'); render(); }
+      }
+    },
+    update(dt, inp) {
+      if (!active) return;
+      if (finishing > 0) {
+        finishing -= dt;
+        if (finishing <= 0) { finishing = 0; active = true; P.bank(); H.done(summary()); }
+        return;
+      }
+      if (grace > 0) grace -= dt;
+      else {
+        const st = cur();
+        if (st && st.tick) {
+          const v = st.tick(dt, ctx, inp);
+          if (typeof v === 'number' && v > n) { n = v; if (n >= st.need) { stepDone(false); return; } H.sfx('tick'); }
+        }
+      }
+      render();
+    },
+    skipStep() { if (active && !finishing) stepDone(true); },
+    skipChapter() {
+      if (!active) return;
+      for (let i = si; i < CH[ci].steps.length; i++) results[i] = results[i] || 'skip';
+      si = CH[ci].steps.length; finishing = 0; P.bank(); H.done(summary());
+    },
+    finishedAll() { this.markPlayed(); }
+  };
 })();
 </script>
 <script>/* CYBERSLIDE - main: renderer, camera, input, HUD, modes */
@@ -3394,6 +3768,7 @@
   scene.fog = new THREE.Fog(FOG, 40, 250);
   scene.background = new THREE.Color(FOG);
   const camera = new THREE.PerspectiveCamera(62, 16 / 9, 0.5, 700);
+  ND.camera = camera;   // exposed for tests
   scene.add(new THREE.AmbientLight(0x9a86d8, 0.75));
   const key = new THREE.DirectionalLight(0xff8fd8, 0.95); key.position.set(-50, 100, 60); scene.add(key);
   const rim = new THREE.DirectionalLight(0x2ff0ff, 0.4); rim.position.set(60, 30, -80); scene.add(rim);
@@ -3473,8 +3848,9 @@
       if (optOpen) { if (e.code === 'Escape') closeOptions(); }
       else if (trOpen) { if (e.code === 'Escape') closeTricks(); }
       else if (boardOpen) { if (e.code === 'Escape') closeBoard(); }
-      else if (state === 'play') pause(); else if (state === 'pause') resume();
+      else if (state === 'play') pause(); else if (state === 'pause') resume(); else if (state === 'tutdone') toMenu();
     }
+    else if ((e.code === 'Enter' || e.code === 'NumpadEnter') && state === 'play' && mode === 'tutorial') { e.preventDefault(); ND.tutorial.skipStep(); }
     else if (act === 'mute') { const m = ND.audio.toggleMute(); S.mute = m; saveS(); toast(m ? 'SOUND OFF' : 'SOUND ON', 'info'); if (optOpen) buildOptions(); }
     else if (trOpen || optOpen || boardOpen) return;
     else if (act === 'restart' && (state === 'play' || state === 'pause' || state === 'over')) openConfirm();
@@ -3584,7 +3960,37 @@
     fxT = 0.001; fovKick = 11; shake = 0.5;
     el.flash.className = ''; void el.flash.offsetWidth; el.flash.className = 'on';
   }
+  /* powerslide snow spray: thrown up and out from the sliding board */
+  const SPN = 150, spPos = new Float32Array(SPN * 3), spVel = new Float32Array(SPN * 3), spLife = new Float32Array(SPN);
+  for (let i = 0; i < SPN; i++) spPos[i * 3 + 1] = -999;
+  const spGeo = new THREE.BufferGeometry(); spGeo.setAttribute('position', new THREE.BufferAttribute(spPos, 3));
+  const spPts = new THREE.Points(spGeo, new THREE.PointsMaterial({ size: 0.26, color: 0xe6f8ff, transparent: true, opacity: 0.9, depthWrite: false, fog: false }));
+  spPts.frustumCulled = false; scene.add(spPts);
+  let spAcc = 0, spI = 0;
+  function updateSpray(dt) {
+    if (state === 'play' && player.state === 'ride' && player.slide > 0.3) {
+      spAcc += dt * 150 * player.slide * Math.min(1, player.speed / 14);
+      const h = player.heading, fx = Math.sin(h), fz = -Math.cos(h), lx = Math.cos(h), lz = Math.sin(h);   // travel direction and the board's sideways axis
+      while (spAcc >= 1) {
+        spAcc--; const i = spI; spI = (spI + 1) % SPN;
+        const along = (Math.random() - 0.5) * 1.5, out = -player.slideDir * (1 + Math.random() * 5.5), up = 1.2 + Math.random() * 4;
+        spPos[i * 3] = player.x + lx * along; spPos[i * 3 + 1] = ND.H(player.x, player.s) + 0.15; spPos[i * 3 + 2] = -player.s + lz * along;
+        spVel[i * 3] = fx * player.speed * 0.55 + lx * out; spVel[i * 3 + 1] = up; spVel[i * 3 + 2] = fz * player.speed * 0.55 + lz * out;
+        spLife[i] = 0.35 + Math.random() * 0.45;
+      }
+    }
+    let any = false;
+    for (let i = 0; i < SPN; i++) {
+      if (spLife[i] <= 0) continue;
+      spLife[i] -= dt; any = true;
+      if (spLife[i] <= 0) { spPos[i * 3 + 1] = -999; continue; }
+      spVel[i * 3 + 1] -= 16 * dt;
+      spPos[i * 3] += spVel[i * 3] * dt; spPos[i * 3 + 1] += spVel[i * 3 + 1] * dt; spPos[i * 3 + 2] += spVel[i * 3 + 2] * dt;
+    }
+    if (any) spGeo.attributes.position.needsUpdate = true;
+  }
   function updateFx(dt) {
+    updateSpray(dt);
     if (fxT > 0) {
       fxT += dt;
       const u = Math.min(1, fxT / 0.6);
@@ -3608,6 +4014,10 @@
 
   /* ---------- player events ---------- */
   player.onEvent = (n, d) => {
+    if (mode === 'tutorial') {
+      ND.tutorial.event(n, d);
+      if (n === 'crash') { toast('WIPEOUT  no worries, try again', 'info'); ND.audio.sfx('crash'); ND.audio.grind(false, 0); return; }   // practice: no FAIL drop
+    }
     if (n === 'trick') { toast(d.name + (d.pts ? '  +' + fmt(d.pts) : '') + (d.chain > 1 ? '  CHAIN x' + d.chain : ''), 'trick', d.input); ND.audio.sfx('trick'); }
     else if (n === 'bank') { toast('COMBO BANKED +' + fmt(d.total), 'bank'); big('+' + fmt(d.total), 'bank'); ND.audio.sfx('bank'); }
     else if (n === 'crash') { toast((d.reason || 'Wipeout').toUpperCase() + (d.lost ? '  combo lost -' + fmt(d.lost) : ''), 'bad'); if (d.lost > 0) showFail(d.reason, d.lost); else big(d.reason === 'Bad landing' ? 'BAD LANDING' : 'WIPEOUT', 'bad'); ND.audio.sfx('crash'); ND.audio.grind(false, 0); }
@@ -3629,7 +4039,7 @@
 
   /* ---------- game flow ---------- */
   let mode = 'timed', state = 'menu', timeLeft = 120, cd = 0, last = performance.now(), camHead = 0, camY = 0, camLook = 0, camDown = 0;
-  const overlays = { menu: $('menu'), pause: $('pause'), result: $('result'), tricks: $('tricks'), confirm: $('confirm'), options: $('options'), entry: $('entry'), board: $('board') };
+  const overlays = { menu: $('menu'), pause: $('pause'), result: $('result'), tricks: $('tricks'), confirm: $('confirm'), options: $('options'), entry: $('entry'), board: $('board'), tutdone: $('tutdone') };
   /* ---------- rider select card ---------- */
   const rcStats = $('rcStats');
   ND.STAT_KEYS.forEach(([k, label]) => {
@@ -3666,7 +4076,8 @@
     options: [['\u2191\u2193', 'Select'], ['\u2190\u2192', 'Adjust'], ['Space', 'Confirm'], ['Esc', 'Back']],
     result: [['\u2191\u2193', 'Select'], ['Space', 'Confirm'], ['@restart', 'Restart']],
     entry: [['A-Z 0-9', 'Type'], ['Backspace', 'Delete'], ['\u2190\u2192', 'Move'], ['\u2191\u2193', 'Letter'], ['Space', 'Save'], ['Esc', 'Skip']],
-    board: [['\u2190\u2192', 'Mode'], ['Space', 'Confirm'], ['Esc', 'Back']]
+    board: [['\u2190\u2192', 'Mode'], ['Space', 'Confirm'], ['Esc', 'Back']],
+    tutdone: [['\u2191\u2193', 'Select'], ['Space', 'Confirm'], ['Esc', 'Menu']]
   };
   function show(name, keep) {
     if (navName) navMem[navName] = navIdx;
@@ -3693,7 +4104,7 @@
         if (rg) out.push({ el: e, t: 'range', inp: rg });
         else if (sg) out.push({ el: e, t: 'seg', box: sg });
         else { const bs = [...e.querySelectorAll('button:not(.fixed)')]; if (bs.length) out.push({ el: e, t: 'btns', bs }); }
-      } else out.push({ el: e, t: 'btn' });
+      } else if (!e.hidden) out.push({ el: e, t: 'btn' });
     });
     return out;
   }
@@ -3761,12 +4172,33 @@
   function getBest(m) { try { return parseInt(localStorage.getItem(bestKey(m)) || localStorage.getItem('neondrop-best-' + m) || '0', 10) || 0; } catch (e) { return 0; } }
   function setBest(m, v) { try { localStorage.setItem(bestKey(m), String(v)); } catch (e) { /* ignore */ } }
 
-  function startRun(m) {
-    mode = m; player.setRider(ND.riderId); ND.audio.init(); ND.audio.startMusic(); ND.audio.sfx('start');
+  /* tutorial: chapters are short practice courses (tutorial.js). The glow on the menu button stays until a round has been played. */
+  const tutGlow = () => !ND.tutorial.played() && !getBest('timed') && !getBest('endless');
+  function paintTutBtn() {
+    const g = tutGlow();
+    $('btnTutorial').classList.toggle('glow', g);
+    $('tutSub').textContent = g ? 'START HERE \u00b7 LEARN BY DOING' : 'LEARN BY DOING';
+  }
+  function leaveTutorial() { if (ND.tutorial.active) ND.tutorial.end(); }
+  ND.tutorial.attach({
+    player,
+    key: (a) => keyName(primary(a)),
+    btn: (b) => ND.btnLabel(b),
+    sfx: (n) => ND.audio.sfx(n),
+    pulse: () => { el.flash.className = ''; void el.flash.offsetWidth; el.flash.className = 'on'; fovKick = Math.max(fovKick, 5); },
+    burst: () => burst(player.x, player.y, player.s),
+    done: (res) => tutorialDone(res)
+  });
+  function startRun(m, ci) {
+    const tut = m === 'tutorial';
+    if (!tut) { leaveTutorial(); ND.tutorial.markPlayed(); }
+    mode = m; player.setRider(tut ? 'nova' : ND.riderId); ND.audio.init(); ND.audio.startMusic(); ND.audio.sfx('start');
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    if (tut) ND.tutorial.begin(ci || 0);
     player.resetAll(); ND.world.clear(); ND.world.update(player.s);
+    if (tut) player.speedCap = ND.tutorial.cap();
     lastP = { x: player.x, y: player.y, s: player.s };
-    timeLeft = 120; cd = 3; state = 'countdown'; show(null);
+    timeLeft = 120; cd = tut ? 2.6 : 3; state = 'countdown'; show(null);
     el.timeLbl.textContent = m === 'timed' ? 'TIME' : 'ENDLESS';
     el.feed.innerHTML = ''; lastScore = -1; dispScore = 0; failT = 0; slowT = 0; el.fail.className = ''; $('rflash').className = ''; camHead = 0; camLook = 0; camDown = 1; camY = player.y + 3.3 + CD_UP;
     snapCamera();
@@ -3775,20 +4207,50 @@
     confirmFrom = state; state = 'confirm';
     for (const k in inp) inp[k] = false;
     ND.audio.grind(false, 0); ND.audio.carve(0, false, 0);
-    $('confText').textContent = confirmFrom === 'over' ? 'Start a new run?' : 'Your current run will be lost.';
+    $('confText').textContent = mode === 'tutorial' ? 'Start this chapter again?' : confirmFrom === 'over' ? 'Start a new run?' : 'Your current run will be lost.';
     show('confirm');
   }
   function cancelConfirm() {
     const from = confirmFrom; confirmFrom = null;
     if (from === 'play') resume(); else if (from === 'pause') { state = 'pause'; show('pause', true); } else { state = 'over'; show('result', true); }
   }
-  function confirmRestart() { confirmFrom = null; swallowSpace = true; inp.space = false; startRun(mode); }
+  function confirmRestart() { confirmFrom = null; swallowSpace = true; inp.space = false; if (mode === 'tutorial') startRun('tutorial', ND.tutorial.chapter); else startRun(mode); }
   $('btnConfYes').onclick = confirmRestart;
   $('btnConfNo').onclick = cancelConfirm;
-  function pause() { state = 'pause'; ND.audio.grind(false, 0); ND.audio.carve(0, false, 0); show('pause'); }
+  function setBtn(id, text, sub) { const b = $(id); b.textContent = text; if (sub) { const sm = document.createElement('small'); sm.textContent = sub; b.appendChild(sm); } }
+  function pause() {
+    state = 'pause'; ND.audio.grind(false, 0); ND.audio.carve(0, false, 0);
+    if (mode === 'tutorial') { setBtn('btnEnd', 'SKIP CHAPTER', 'MOVE ON'); setBtn('btnRestart', 'RESTART CHAPTER'); setBtn('btnMenu', 'EXIT TUTORIAL'); }
+    else { setBtn('btnEnd', 'END RUN', 'SEE YOUR RESULTS'); setBtn('btnRestart', 'RESTART'); setBtn('btnMenu', 'MAIN MENU'); }
+    show('pause');
+  }
   function resume() { state = 'play'; show(null); last = performance.now(); }
   function refreshBests() { $('bestTimed').textContent = fmt(getBest('timed')); $('bestEndless').textContent = fmt(getBest('endless')); }
-  function toMenu() { state = 'menu'; ND.audio.grind(false, 0); ND.audio.carve(0, false, 0); player.resetAll(); ND.world.clear(); ND.world.update(player.s); el.big.className = ''; show('menu'); refreshBests(); }
+  function toMenu() { leaveTutorial(); state = 'menu'; ND.audio.grind(false, 0); ND.audio.carve(0, false, 0); player.resetAll(); ND.world.clear(); ND.world.update(player.s); el.big.className = ''; show('menu'); refreshBests(); paintTutBtn();
+    if (tutGlow()) { const i = navUnits().findIndex((u) => u.el.id === 'btnTutorial'); if (i >= 0) { navIdx = i; navPaint(false); } }   // first time: the tutorial is the highlighted button
+  }
+
+  /* a chapter was finished (or skipped): badges for what was learned, then on to the next one */
+  function tutorialDone(res) {
+    state = 'tutdone'; ND.audio.grind(false, 0); ND.audio.carve(0, false, 0); el.big.className = '';
+    for (const k in inp) inp[k] = false;
+    const last = res.last, nOk = res.badges.filter((b) => b.ok).length;
+    if (last) ND.tutorial.finishedAll();
+    $('tdCrumb').textContent = last ? '// all clear' : '// chapter clear';
+    $('tdSub').textContent = last ? 'TUTORIAL COMPLETE' : 'CHAPTER ' + (res.ci + 1) + ' OF ' + res.total + ' COMPLETE';
+    $('tdTitle').textContent = last ? 'READY TO RIDE' : nOk === res.badges.length ? 'NICE RIDING' : 'ON TO THE NEXT';
+    const box = $('tdStars'); box.textContent = '';
+    res.badges.forEach((b, i) => { const sp = document.createElement('span'); sp.textContent = b.badge; if (!b.ok) sp.className = 'dim'; sp.style.animationDelay = (i * 0.09) + 's'; box.appendChild(sp); });
+    $('tdText').textContent = last
+      ? 'That is everything. Chain tricks, bank big combos and go for the biggest air. Go set a score.'
+      : res.tricks + ' tricks landed \u00b7 best combo ' + fmt(res.bestCombo) + (nOk < res.badges.length ? ' \u00b7 skipped steps are greyed out, you can replay the chapter any time' : '');
+    $('btnTdNext').hidden = last;
+    $('tdNextSub').textContent = last ? '' : 'CHAPTER ' + (res.ci + 2) + ' \u00b7 ' + ND.tutorial.CHAPTERS[res.ci + 1].name;
+    $('btnTdRun').className = last ? 'btn' : 'btn alt';
+    $('btnTdAgain').textContent = last ? 'REPLAY LAST CHAPTER' : 'REPLAY CHAPTER';
+    show('tutdone');
+    ND.audio.sfx(last ? 'fanfare' : 'bank');
+  }
   function finish() {
     state = 'over'; player.bank(); ND.audio.grind(false, 0); ND.audio.carve(0, false, 0); ND.audio.sfx('end');
     const best = getBest(mode), isBest = player.score > best;
@@ -4117,8 +4579,13 @@
   $('btnTimed').onclick = () => startRun('timed');
   $('btnEndless').onclick = () => startRun('endless');
   $('btnResume').onclick = resume;
-  $('btnEnd').onclick = finish;
-  $('btnRestart').onclick = () => startRun(mode);
+  $('btnEnd').onclick = () => { if (mode === 'tutorial') ND.tutorial.skipChapter(); else finish(); };
+  $('btnRestart').onclick = () => { if (mode === 'tutorial') startRun('tutorial', ND.tutorial.chapter); else startRun(mode); };
+  $('btnTutorial').onclick = () => startRun('tutorial', 0);
+  $('btnTdNext').onclick = () => startRun('tutorial', ND.tutorial.chapter + 1);
+  $('btnTdAgain').onclick = () => startRun('tutorial', ND.tutorial.chapter);
+  $('btnTdRun').onclick = () => startRun('timed');
+  $('btnTdMenu').onclick = toMenu;
   $('btnMenu').onclick = toMenu;
   $('btnAgain').onclick = () => startRun(mode);
   $('btnMenu2').onclick = toMenu;
@@ -4126,7 +4593,8 @@
   /* ---------- camera ---------- */
   const sunOff = new THREE.Vector3(0, 62, -470);
   /* during the countdown the camera sits higher and tilts down into the slope, then eases back to the normal view after the drop */
-  const CD_UP = 1.0, CD_DOWN = 5.5;
+  const CD_UP = 1.0, CD_DOWN = 5.5, CAM_CLEAR = 0.7;
+  let camLift = 0;
   function snapCamera() {
     camera.position.set(player.x, player.y + 3.3 + CD_UP * camDown, -player.s + 8);
     camera.lookAt(player.x, player.y - 3 - CD_DOWN * camDown, -player.s - 14);
@@ -4142,8 +4610,21 @@
     const tx = player.x - Math.sin(camHead) * dist;
     camera.position.x += (tx - camera.position.x) * Math.min(1, dt * 7);
     camY += (player.y + 3.3 + CD_UP * camDown - camY) * Math.min(1, dt * (player.state === 'air' ? 3 : 8));
-    camera.position.y = camY;
     camera.position.z = -player.s + Math.cos(camHead) * dist;
+    // terrain-aware: the camera sits up the hill from the rider, so the snow behind it is higher than the rider's own ground.
+    // Probe the line from the camera to the rider and lift the camera whenever the ground would cut into it (landing slopes,
+    // ramps, walls, tumbles). It rises at once and settles back slowly, so the usual view stays the same.
+    {
+      const hx = player.x, hy = player.y + 1.2, hz = -player.s, cx = camera.position.x, cz = camera.position.z;
+      let need = camY;
+      for (let i = 0; i < 5; i++) {
+        const f = i * 0.2, g = ND.H(cx + (hx - cx) * f, -(cz + (hz - cz) * f)) + CAM_CLEAR;
+        need = Math.max(need, (g - hy * f) / (1 - f));
+      }
+      const want = need - camY;
+      camLift += (want - camLift) * Math.min(1, dt * (want > camLift ? 30 : 2.5));
+      camera.position.y = Math.max(camY + camLift, need);
+    }
     camera.up.set(-player.roll * 0.3, 1, 0).normalize();
     camera.lookAt(player.x + Math.sin(camHead) * 10 + camLook, player.y - 2.4 - CD_DOWN * camDown, -player.s - 14);
     const bf = S.fov, fov = Math.min(bf + 30, bf + (Math.max(0, Math.min(20, (player.speed - 15) * 0.55)) + 6 * player.boostNow) * S.fx) + fovKick * S.fx;
@@ -4182,8 +4663,9 @@
       let ts = 1;
       if (slowT > 0) { slowT -= dt; ts = slowT > 0.25 ? 0.2 : 0.2 + 0.8 * (1 - Math.max(0, slowT) / 0.25); }   // slow-mo beat after a failed combo
       player.update(dt * ts, inp);
+      if (mode === 'tutorial') ND.tutorial.update(dt * ts, inp);
       if (mode === 'timed') { timeLeft -= dt; if (timeLeft <= 0) { timeLeft = 0; finish(); } }
-      ND.audio.carve(player.speed, player.state === 'ride', Math.abs(player.hv) / 2);
+      ND.audio.carve(player.speed, player.state === 'ride', Math.max(Math.abs(player.hv) / 2, player.slide * 1.4));
     } else if (state === 'menu') {
       player.pose(dt, NOINP);
     }
