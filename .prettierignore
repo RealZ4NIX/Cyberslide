@@ -1,0 +1,13 @@
+dist
+node_modules
+package-lock.json
+# ported modules keep their original dense layout until they're fully typed
+src/city.ts
+src/riders.ts
+src/riderSelect.ts
+src/player.ts
+src/tutorial.ts
+src/game.ts
+src/world.ts
+src/styles.css
+index.html
