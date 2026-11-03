@@ -224,6 +224,8 @@
   .rc-pips { display: flex; justify-content: center; gap: 8px; }
   .rc-pips span { width: 22px; height: 5px; background: rgba(143,134,196,.35); transform: skewX(-25deg); transition: background .2s, box-shadow .2s; }
   .rc-pips span.on { background: var(--rc); box-shadow: 0 0 8px var(--rc); }
+  .rcard.unlock { animation: rcunlock 1.3s ease-out; }
+  @keyframes rcunlock { 0% { filter: brightness(3) saturate(0); transform: scale(1.06) skewX(-4deg); } 12% { filter: brightness(1.8); transform: translateX(-6px) scale(1.03); } 20% { transform: translateX(5px); } 28% { transform: translateX(-3px); } 100% { filter: none; transform: none; } }
   @media (max-width: 760px) { .rcard { width: min(340px, 90vw); } }
 
   /* controls hint bar at the bottom of every menu screen */
@@ -305,7 +307,7 @@
     93% { transform: skewX(-10deg) translate(3px, -1px); text-shadow: -6px 0 var(--pink), 6px 0 var(--cyan); }
     95% { transform: skewX(-6deg); }
   }
-  @media (prefers-reduced-motion: reduce) { #fail.show b, #fail.show #failWhy, #fail.show #failPts, #rflash.on { animation: none; } #big.show, #big.perfect.show, #endCount.show, #flash.on, .toast, #hudTime.low, .title, .ov::before, .btn.sel::after, .badge { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { #fail.show b, #fail.show #failWhy, #fail.show #failPts, #rflash.on { animation: none; } #big.show, #big.perfect.show, #endCount.show, #flash.on, .toast, #hudTime.low, .title, .ov::before, .btn.sel::after, .badge, .rcard.unlock { animation: none; } }
 
   /* ---------- tutorial: holo training panel ---------- */
   .btn.tut { --bc: var(--gold); --fill: rgba(255,210,63,.12); }

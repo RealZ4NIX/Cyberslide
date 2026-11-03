@@ -15,7 +15,7 @@ src/
   course.ts           the hill as pure data: segment kinds, bends, ramps, rails, dips, walls, height field
   world.ts            turns the course into meshes and streams chunks around the rider
   city.ts             neon city scenery: districts, signs, billboards, steam, cables
-  riders.ts           the four rider models, their stats and stat-to-physics multipliers
+  riders.ts           the four rider models plus secret SKELLY, their stats and stat-to-physics multipliers
   riderSelect.ts      the spinning rider ring in the menu
   player.ts           rider physics, tricks, grinds, landings, combo scoring
   tricks.ts           the trick list and how each trick is input
@@ -24,6 +24,7 @@ src/
   audio.ts            generated drum & bass soundtrack and sound effects (WebAudio)
   gamepad.ts          controller reading: dead-zone, edge detection, glyph names, rumble
   scores.ts           local scoreboard with a swappable backend
+  secretCode.ts       watches typed letters or controller buttons for a cheat-code sequence
 
   *.test.ts           tests sit next to the module they cover
   test-utils/         fake canvas/DOM and in-memory localStorage for tests
@@ -38,7 +39,7 @@ adding imports.
 ## Typing status
 
 `tsconfig.json` is strict. These modules are fully typed: `course`, `world`, `audio`, `scores`, `tricks`,
-`gamepad`, `riderSelect`.
+`gamepad`, `riderSelect`, `secretCode`.
 
 These were ported as-is and still start with `// @ts-nocheck`, so the compiler doesn't check them yet:
 `player`, `game`, `city`, `riders`, `tutorial`. They behave exactly as before; typing them is the next step.
@@ -57,4 +58,5 @@ textures when they load; import it first in a test that needs it.
 - `scores.test.ts`: ranking, ties, top 10, name cleaning, corrupt or blocked storage, swappable backend
 - `gamepad.test.ts`: pad detection, dead-zone, press/release edges, stick hysteresis, rumble
 - `audio.test.ts`: safe before the context exists, mixer setup, every sound effect, music scheduling
-- `riders.test.ts`: stats, multipliers, every model builds
+- `riders.test.ts`: stats, multipliers, every model builds, the secret rider unlock
+- `secretCode.test.ts`: code sequences, junk input, wrong order, timeout between inputs

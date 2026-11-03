@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import { ND } from './nd';
+import { secretCode } from './secretCode';
 
 export function boot(): void {
   const $ = (id) => document.getElementById(id);
@@ -152,6 +153,7 @@ export function boot(): void {
     if (e.key && e.key.length === 1 && e.code !== 'Space' && !e.code.startsWith('Numpad')) S.labels[e.code] = e.key.toUpperCase();
     if (listen) { e.preventDefault(); if (!e.repeat) handleListen(e); return; }
     if (swallowSpace && e.code === 'Space') { e.preventDefault(); return; }   // the Space that confirmed a restart must not also start a jump
+    if (!e.repeat && e.key && e.key.length === 1 && secretReady() && skellyKeys.push(e.key.toUpperCase(), performance.now())) unlockSecret();
     if (navKey(e)) return;
     if (state === 'confirm') {
       if (e.code === 'Escape') { e.preventDefault(); if (!e.repeat) cancelConfirm(); }
@@ -250,11 +252,14 @@ export function boot(): void {
     if (optOpen || trOpen || boardOpen) return;
     if (state === 'play') pause(); else if (state === 'pause') resume(); else if (state === 'tutdone') toMenu();
   }
+  function padSecret(tok) { if (secretReady() && skellyPad.push(tok, performance.now())) unlockSecret(); }
   function padMenu(dt) {
     const P = PADK.st;
+    if (P.hit[4]) padSecret('L1');
+    if (P.hit[6]) padSecret('L2');
     if (!padNavWas) for (const d in NAVH) { NAVH[d] = P[d]; NAVT[d] = 0.4; }   // a stick already held when the menu opens waits for the next push
     for (const d in NAVH) {
-      if (P[d] && !NAVH[d]) { NAVH[d] = true; NAVT[d] = 0.4; padNavDir(d, false); }
+      if (P[d] && !NAVH[d]) { NAVH[d] = true; NAVT[d] = 0.4; padSecret(d); padNavDir(d, false); }
       else if (P[d]) { NAVT[d] -= dt; if (NAVT[d] <= 0) { NAVT[d] = 0.1; padNavDir(d, true); } }
       else NAVH[d] = false;
     }
@@ -499,7 +504,9 @@ export function boot(): void {
     row.innerHTML = '<span>' + label + '</span><div class="rc-bar"><i></i></div><em></em>';
     rcStats.appendChild(row);
   });
-  const rcPips = $('rcPips'); ND.RIDERS.forEach(() => rcPips.appendChild(document.createElement('span')));
+  const rcPips = $('rcPips');
+  function buildPips() { rcPips.textContent = ''; ND.RIDERS.forEach(() => rcPips.appendChild(document.createElement('span'))); }
+  buildPips();
   function paintCard() {
     const d = ND.RIDERS[ND.select.index], card = $('riderCard');
     card.style.setProperty('--rc', d.color); card.style.setProperty('--bc', d.color);
@@ -511,9 +518,31 @@ export function boot(): void {
     [...rcPips.children].forEach((p, i) => p.classList.toggle('on', i === ND.select.index));
   }
   function riderStep(d) {
-    ND.select.step(d); ND.riderId = ND.RIDERS[ND.select.index].id;
-    try { localStorage.setItem(RIDER_KEY, ND.riderId); } catch (e) { /* ignore */ }
-    paintCard(); ND.audio.init(); ND.audio.sfx('nav');
+    ND.select.step(d); pickRider();
+    ND.audio.init(); ND.audio.sfx('nav');
+  }
+  function pickRider() {
+    const def = ND.RIDERS[ND.select.index]; ND.riderId = def.id;
+    if (!def.secret) try { localStorage.setItem(RIDER_KEY, ND.riderId); } catch (e) { /* ignore */ }   // a secret pick isn't saved: it's gone next session
+    paintCard();
+  }
+  /* secret rider: type SKELLY on the main menu, or press up up down down L1 L2 on a controller.
+     The unlock is in memory only, so after closing the game he's gone again. */
+  const SECRET_ID = 'skelly';
+  const skellyKeys = secretCode(['S', 'K', 'E', 'L', 'L', 'Y']);
+  const skellyPad = secretCode(['up', 'up', 'down', 'down', 'L1', 'L2']);
+  const secretReady = () => state === 'menu' && navName === 'menu';
+  let unlockT = 0;
+  function unlockSecret() {
+    const fresh = ND.unlockRider(SECRET_ID), def = ND.riderDef(SECRET_ID);
+    if (fresh) { ND.select.addRider(def); buildPips(); }
+    else { const i = ND.RIDERS.indexOf(def); if (i !== ND.select.index) ND.select.step((i - ND.select.index + ND.RIDERS.length) % ND.RIDERS.length); }
+    pickRider();
+    ND.audio.init(); ND.audio.sfx(fresh ? 'fanfare' : 'sel');
+    padNote(fresh ? 'SECRET RIDER UNLOCKED \u00b7 ' + def.name : def.name + ' IS BACK');
+    const card = $('riderCard'); card.classList.remove('unlock'); void card.offsetWidth; card.classList.add('unlock');
+    clearTimeout(unlockT); unlockT = setTimeout(() => card.classList.remove('unlock'), 1400);
+    if (S.rumble && PADK.connected) { PADK.rumble(0.9, 0.6, 220); setTimeout(() => PADK.rumble(0.4, 0.9, 260), 260); }
   }
   $('rcPrev').onclick = () => riderStep(-1);
   $('rcNext').onclick = () => riderStep(1);
@@ -854,7 +883,7 @@ export function boot(): void {
         row.className = 'bd-row' + (i < 3 ? ' top' : '') + (en ? '' : ' empty') + (boardHL && boardHL.mode === m && boardHL.idx === i ? ' me' : '');
         const cell = (cls, txt) => { const s = document.createElement('span'); s.className = cls; s.textContent = txt; row.appendChild(s); return s; };
         cell('rk', i + 1); cell('in', en ? en.n : '---'); cell('sc', en ? fmt(en.s) : '');
-        const def = en && ND.RIDERS.find((r) => r.id === en.r), rd = cell('rd', def ? def.name : '');
+        const def = en && ND.riderDef(en.r), rd = cell('rd', def ? def.name : '');
         if (def) rd.style.setProperty('--rc', def.color);
         cell('ds', en ? fmt(en.d || 0) + ' m' : '');
         box.appendChild(row);

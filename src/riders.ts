@@ -1,6 +1,6 @@
 // @ts-nocheck -- ported as-is from the single-file build; not strictly typed yet (see docs/structure.md)
 
-/* CYBERSLIDE - riders: four detailed rider models (blocky PS2 style) with idle animations, and their stats */
+/* CYBERSLIDE - riders: four detailed rider models plus a secret one (blocky PS2 style) with idle animations, and their stats */
 
 import * as THREE from 'three';
 import { ND } from './nd';
@@ -378,6 +378,114 @@ function chrome() {
   return r;
 }
 
+/* ================= SKELLY: secret rider, a chrome-wired cyber skeleton with a reactor heart ================= */
+function skelly() {
+  const r = mkRig(), L = 0xc6ff2e, RD = 0xff2a44, BN = 0xe6e0cc, BD = 0xb8b19a, DK = 0x0b0a10;
+  r.trail = [[0.78, 1, 0.18], [1, 0.16, 0.27]]; r.glow = 0xc6ff2e;
+  r.board = mkBoard({ deck: 0x0c0c12, stripe: L, edge: RD, tip: L });
+  add(r.board, B(0.3, 0.09, 0.3), bas(RD), 0, 0.01, 0);                     // skull-red deck sticker
+  const shin = [];
+  for (const z of [-0.42, 0.42]) {
+    add(r.board, B(0.36, 0.22, 0.52), lam(DK), 0, 0.15, z);                  // boots
+    add(r.board, B(0.38, 0.05, 0.54), bas(L), 0, 0.06, z);
+    add(r.board, B(0.1, 0.5, 0.1), lam(BN), 0, 0.5, z);                      // shin bone
+    add(r.board, B(0.06, 0.46, 0.06), lam(BD), 0.02, 0.5, z + 0.06);         // fibula
+    add(r.board, B(0.16, 0.08, 0.16), lam(BN), 0, 0.27, z);                  // ankle knob
+    const s = own(L, 0.55); add(r.board, B(0.03, 0.4, 0.05), s, -0.08, 0.5, z); shin.push(s);   // neon shin strut
+    add(r.board, new THREE.SphereGeometry(0.11, 6, 4), chr(0x7a8099), 0, 0.78, z);   // chrome knee
+    add(r.board, B(0.11, 0.3, 0.11), lam(BN), 0, 0.95, z);                   // femur
+  }
+  const b = r.body;
+  add(b, B(0.36, 0.14, 0.62), lam(BN), 0, 1.1, 0);                          // pelvis
+  add(b, B(0.38, 0.05, 0.64), bas(L), 0, 1.18, 0);                          // glowing belt
+  const vert = [];
+  for (let i = 0; i < 9; i++) {                                              // spine with LED vertebrae
+    const y = 1.22 + i * 0.085;
+    add(b, B(0.12, 0.06, 0.12), lam(BN), 0.12, y, 0);
+    const v = own(L); add(b, B(0.05, 0.04, 0.05), v, 0.2, y, 0); vert.push(v);
+  }
+  add(b, B(0.04, 0.48, 0.08), lam(BN), -0.22, 1.58, 0);                     // sternum
+  for (let i = 0; i < 5; i++) {                                              // ribcage
+    const y = 1.36 + i * 0.1, w = 0.3 - 0.015 * Math.abs(i - 2);
+    for (const s of [-1, 1]) {
+      add(b, B(0.38, 0.05, 0.05), lam(BN), -0.02, y, s * w);
+      add(b, B(0.05, 0.05, w - 0.02), lam(BD), -0.2, y - 0.02, s * w * 0.5);
+    }
+  }
+  const core = add(b, B(0.18, 0.18, 0.18), own(L), 0, 1.56, 0, 0.3, 0.6, 0.2);   // reactor heart
+  const coreHalo = add(b, B(0.34, 0.34, 0.34), own(L, 0.35), 0, 1.56, 0, 0.6, 0.2, 0.4);
+  for (const z of [-0.07, 0.07]) add(b, B(0.24, 0.025, 0.025), bas(RD), 0.06, 1.62, z, 0, 0, -0.5);   // cables heart to spine
+  add(b, B(0.12, 0.08, 1.0), lam(BN), -0.04, 1.92, 0);                      // collarbones
+  add(b, B(0.14, 0.14, 0.14), lam(BN), 0.04, 2.02, 0);                      // neck
+  const pd = add(b, B(0.42, 0.18, 0.36), chr(0x5a607a), 0, 2.0, 0.6);       // spiked chrome pauldron on one shoulder
+  add(pd, B(0.44, 0.04, 0.38), bas(RD), 0, -0.07, 0);
+  for (const dx of [-0.12, 0.04, 0.18]) add(pd, new THREE.ConeGeometry(0.05, 0.24, 4), chr(0x8a90aa), dx, 0.18, 0.04);
+  const mk = (z, cyber) => mkArm(r, z, (g) => {
+    add(g, new THREE.SphereGeometry(0.1, 6, 4), lam(BN), 0, 0, 0);          // shoulder ball
+    add(g, B(0.09, 0.36, 0.09), lam(BN), 0, -0.2, 0);                        // upper arm bone
+    add(g, new THREE.SphereGeometry(0.08, 6, 4), cyber ? chr(0x7a8099) : lam(BN), 0, -0.4, 0);
+    for (const dz of [-0.035, 0.035]) add(g, B(0.05, 0.3, 0.05), lam(dz < 0 ? BN : BD), 0, -0.56, dz);   // two forearm bones
+    if (cyber) {                                                             // chrome cyber hand
+      add(g, B(0.2, 0.16, 0.18), chr(0x5a607a), 0, -0.76, 0);
+      add(g, B(0.21, 0.03, 0.19), bas(L), 0, -0.72, 0);
+      for (const dz of [-0.06, 0, 0.06]) add(g, B(0.05, 0.12, 0.04), chr(0x8a90aa), -0.04, -0.88, dz);
+    } else {                                                                 // bony fingers
+      add(g, B(0.12, 0.08, 0.14), lam(BN), 0, -0.74, 0);
+      for (const dz of [-0.05, 0, 0.05]) add(g, B(0.03, 0.12, 0.03), lam(BN), -0.02, -0.84, dz);
+    }
+  });
+  r.armNear = mk(0.5, false); r.armFar = mk(-0.5, true);
+  const h = r.head;
+  const skull = add(h, new THREE.SphereGeometry(0.29, 8, 6), lam(BN), 0, 0.04, 0); skull.scale.set(1.05, 1, 0.92);
+  add(h, B(0.2, 0.14, 0.4), lam(BN), -0.14, -0.1, 0);                       // cheekbones and upper jaw
+  for (const z of [-0.11, 0.11]) add(h, B(0.06, 0.12, 0.12), bas(DK), -0.27, 0.02, z);   // eye sockets
+  const eyeL = own(RD); add(h, B(0.04, 0.06, 0.06), eyeL, -0.29, 0.02, 0.11);
+  const eyeLH = own(RD, 0.4); add(h, B(0.05, 0.12, 0.12), eyeLH, -0.3, 0.02, 0.11);
+  add(h, CYL(0.08, 0.06, 8), chr(0x7a8099), -0.28, 0.02, -0.11, 0, 0, PI / 2);   // cyber eye on the other side
+  const eyeR = own(L); add(h, CYL(0.045, 0.07, 8), eyeR, -0.29, 0.02, -0.11, 0, 0, PI / 2);
+  add(h, B(0.05, 0.07, 0.05), bas(DK), -0.29, -0.07, 0);                    // nose hole
+  for (const z of [-0.12, -0.06, 0, 0.06, 0.12]) add(h, B(0.03, 0.05, 0.045), bas(0xfffbe8), -0.25, -0.15, z);   // top teeth
+  const plate = add(h, B(0.3, 0.2, 0.06), chr(0x5a607a), 0.02, 0.14, -0.27);    // chrome skull plate with circuit lines
+  add(plate, B(0.26, 0.02, 0.07), bas(L), 0, 0.03, 0); add(plate, B(0.02, 0.1, 0.07), bas(L), -0.06, -0.03, 0);
+  const jaw = new THREE.Group(); jaw.position.set(-0.04, -0.16, 0); h.add(jaw);  // jaw hinges so he can laugh
+  add(jaw, B(0.24, 0.07, 0.34), lam(BN), -0.1, -0.05, 0);
+  for (const z of [-0.12, -0.06, 0, 0.06, 0.12]) add(jaw, B(0.03, 0.05, 0.045), bas(0xfffbe8), -0.21, -0.01, z);
+  const spikes = [];
+  for (let i = 0; i < 5; i++) {                                              // neon mohawk spikes
+    const s = add(h, new THREE.ConeGeometry(0.055, 0.22 + 0.06 * (2 - Math.abs(i - 2)), 4), bas(i % 2 ? RD : L), 0.2 - i * 0.1, 0.36 + 0.04 * (2 - Math.abs(i - 2)), 0, 0, 0, 0.3);
+    spikes.push(s);
+  }
+  mkTail(r, 4, 0.2, (sg, i) => {                                             // trailing data cable
+    add(sg, B(0.22, 0.05, 0.05), lam(DK), 0.1, 0, 0);
+    add(sg, B(0.06, 0.07, 0.07), bas(i % 2 ? RD : L), 0.2, 0, 0);
+  });
+  finish(r);
+  const beat = (t) => { const p = (t * 1.2) % 1; return Math.max(Math.exp(-p * 18), 0.7 * Math.exp(-Math.abs(p - 0.22) * 22)); };   // lub-dub
+  const glow = (t) => {
+    const k = beat(t);
+    core.scale.setScalar(1 + 0.35 * k); coreHalo.scale.setScalar(1 + 0.6 * k); coreHalo.material.opacity = 0.2 + 0.5 * k;
+    const run = Math.floor(t * 12) % vert.length;                             // a white pulse climbs the spine
+    vert.forEach((v, i) => v.color.setHex(i === run ? 0xffffff : i === run - 1 ? 0xeaffb0 : L));
+    shin.forEach((s, i) => { s.opacity = 0.35 + 0.4 * pulse(t, 6, i * 2); });
+    const fl = Math.random() < 0.03 ? 0.2 : 1;                                // eye flicker
+    eyeL.color.setRGB(fl, 0.16 * fl, 0.27 * fl); eyeLH.opacity = 0.25 + 0.3 * pulse(t, 4) * fl;
+    eyeR.color.setHex(pulse(t, 2.5) > 0.5 ? L : 0x6aa010);
+  };
+  r.fx = (t) => { glow(t); jaw.rotation.z = 0.15 + 0.12 * Math.abs(sin(t * 9)); };   // in a run his jaw rattles with speed
+  r.idle = (t) => {
+    stand(r, t, 0.035 * sin(t * 2.6), 0.06 * sin(t * 1.1));
+    const k = (t % 4.5) / 4.5, lf = k > 0.6 && k < 0.9 ? sin((k - 0.6) / 0.3 * PI) : 0;   // every few seconds: head back, cackling
+    r.head.rotation.y = r.headY + 0.15 * sin(t * 0.8);
+    r.head.rotation.z = 0.35 * lf;
+    jaw.rotation.z = 0.04 + lf * (0.25 + 0.2 * Math.abs(sin(t * 22)));
+    r.armFar.rotation.set(0.1 + 0.4 * lf, 0, -0.08 - 0.9 * lf + 0.04 * sin(t * 2.6));   // chrome hand comes up, fingers out
+    r.armNear.rotation.set(-0.12, 0, 0.05 * sin(t * 2.6 + 1) - 0.25 * lf);
+    spikes.forEach((s, i) => { s.scale.y = 1 + 0.15 * sin(t * 5 + i); });
+    glow(t);
+  };
+  return r;
+}
+
 /* ---- roster and stats (1 to 5) ---- */
 ND.STAT_KEYS = [['speed', 'SPEED'], ['carve', 'CARVE'], ['pop', 'POP'], ['spin', 'SPIN'], ['combo', 'COMBO'], ['landing', 'LANDING'], ['grind', 'GRIND']];
 ND.RIDERS = [
@@ -404,4 +512,16 @@ ND.riderK = (st) => {
     grindPts: 1 + 0.12 * d('grind'), grindKick: 1 + 0.08 * d('grind')
   };
 };
-ND.buildRider = (id) => { const def = ND.RIDERS.find((x) => x.id === id) || ND.RIDERS[0]; const rg = def.build(); rg.def = def; return rg; };
+/* secret riders: not in the roster until unlocked, and the unlock lasts only for this session (nothing is saved) */
+ND.SECRET_RIDERS = [
+  { id: 'skelly', name: 'SKELLY', role: 'SECRET RIDER', blurb: 'Maxed out in everything. Back from the dead to shred.', weak: 'None. He has no flesh to lose.', build: skelly, color: '#c6ff2e', secret: true,
+    stats: { speed: 5, carve: 5, pop: 5, spin: 5, combo: 5, landing: 5, grind: 5 } }
+];
+/* adds a secret rider to the roster; true if this call unlocked it, false if unknown or already in */
+ND.unlockRider = (id) => {
+  const def = ND.SECRET_RIDERS.find((x) => x.id === id);
+  if (!def || ND.RIDERS.includes(def)) return false;
+  ND.RIDERS.push(def); return true;
+};
+ND.riderDef = (id) => ND.RIDERS.find((x) => x.id === id) || ND.SECRET_RIDERS.find((x) => x.id === id);
+ND.buildRider = (id) => { const def = ND.riderDef(id) || ND.RIDERS[0]; const rg = def.build(); rg.def = def; return rg; };

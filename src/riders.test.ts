@@ -8,6 +8,7 @@ interface RiderDef {
   id: string;
   name: string;
   stats: Record<string, number>;
+  secret?: boolean;
 }
 const RIDERS = ND.RIDERS as RiderDef[];
 
@@ -42,5 +43,24 @@ describe('riders', () => {
       expect(() => rg.idle?.(1.5, 1 / 60)).not.toThrow();
     }
     expect(ND.buildRider('nobody').def.id).toBe('nova');
+  });
+
+  it('keeps SKELLY secret until unlocked, maxed out in everything, and only in memory', () => {
+    const before = RIDERS.length;
+    expect(RIDERS.some((r) => r.id === 'skelly')).toBe(false);
+    const sk = ND.riderDef('skelly') as RiderDef;
+    expect(sk.secret).toBe(true);
+    for (const v of Object.values(sk.stats)) expect(v).toBe(5);
+    const rg = ND.buildRider('skelly');
+    expect(rg.def.id).toBe('skelly');
+    expect(() => rg.idle?.(2.5, 1 / 60)).not.toThrow();
+    expect(() => rg.fx?.(2.5, 1 / 60)).not.toThrow();
+
+    expect(ND.unlockRider('skelly')).toBe(true);
+    expect(RIDERS.length).toBe(before + 1);
+    expect(RIDERS.at(-1)!.id).toBe('skelly');
+    expect(ND.unlockRider('skelly')).toBe(false); // a second unlock doesn't add him twice
+    expect(ND.unlockRider('nobody')).toBe(false);
+    RIDERS.pop();
   });
 });

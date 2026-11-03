@@ -1,4 +1,5 @@
-/* CYBERSLIDE - rider select: four riders stand on a neon ring in the menu; the ring spins so the chosen one is in front */
+/* CYBERSLIDE - rider select: the riders stand on a neon ring in the menu; the ring spins so the chosen one is in front.
+   A secret rider unlocked mid-session joins the ring with addRider. */
 
 import * as THREE from 'three';
 import { ND } from './nd';
@@ -46,25 +47,42 @@ function init(): void {
   under.geometry.dispose(); under.geometry = new THREE.RingGeometry(R + 0.85, R + 1.5, 56);
   // the ring that carries the riders and spins
   ring = new THREE.Group(); top.add(ring);
-  (ND.RIDERS as RiderDef[]).forEach((def) => {
-    const rg: RiderRig = ND.buildRider(def.id);
-    rg.baseY = 0.2; rg.headY = 0.02;                              // turn the torso and head toward the viewer
-    const g = new THREE.Group();
-    const fg = new THREE.Group(); fg.add(rg.board); g.add(fg, rg.body);
-    g.scale.setScalar(0.9);
-    const pad = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.18, 6), new THREE.MeshBasicMaterial({ color: new THREE.Color(def.color), transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-    pad.rotation.x = -PI / 2; pad.position.y = 0.02;
-    const padFill = new THREE.Mesh(new THREE.CircleGeometry(1.0, 6), new THREE.MeshBasicMaterial({ color: new THREE.Color(def.color), transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-    padFill.rotation.x = -PI / 2; padFill.position.y = 0.015;
-    const slot = new THREE.Group(); slot.add(g, pad, padFill); ring.add(slot);
-    riders.push({ rg, g, slot, pad, padFill, def });
-    pads.push(pad);
-  });
+  (ND.RIDERS as RiderDef[]).forEach(addSlot);
   place();
+}
+const count = (): number => Math.max(1, riders.length);
+const gap = (): number => TAU / count();
+function addSlot(def: RiderDef): void {
+  const rg: RiderRig = ND.buildRider(def.id);
+  rg.baseY = 0.2; rg.headY = 0.02;                              // turn the torso and head toward the viewer
+  const g = new THREE.Group();
+  const fg = new THREE.Group(); fg.add(rg.board); g.add(fg, rg.body);
+  g.scale.setScalar(0.9);
+  const pad = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.18, 6), new THREE.MeshBasicMaterial({ color: new THREE.Color(def.color), transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  pad.rotation.x = -PI / 2; pad.position.y = 0.02;
+  const padFill = new THREE.Mesh(new THREE.CircleGeometry(1.0, 6), new THREE.MeshBasicMaterial({ color: new THREE.Color(def.color), transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  padFill.rotation.x = -PI / 2; padFill.position.y = 0.015;
+  const slot = new THREE.Group(); slot.add(g, pad, padFill); ring.add(slot);
+  riders.push({ rg, g, slot, pad, padFill, def });
+  pads.push(pad);
+}
+/* a new rider joins the ring; the spacing re-flows and the ring spins forward until the new one is in front */
+function addRider(def: RiderDef): number {
+  if (!ring) return -1;
+  const have = riders.findIndex((r) => r.def.id === def.id);
+  if (have >= 0) return have;
+  addSlot(def);
+  const n = count();
+  // keep the rider that is in front where it is under the new spacing, then spin ahead to the newcomer
+  const turns = Math.floor(ang / TAU);
+  ang = turns * TAU + idx * gap(); vel = 0;
+  idx = n - 1; tgt = turns * TAU + idx * gap() + TAU;            // one full extra spin for the reveal
+  place();
+  return idx;
 }
 function place(): void {
   riders.forEach((r, i) => {
-    const a = i * PI / 2 - ang;
+    const a = i * gap() - ang;
     r.slot.position.set(Math.sin(a) * R, 0, Math.cos(a) * R);
     r.g.rotation.y = PI / 2 - 0.55 - 0.18 * Math.sin(a);       // faces the camera at three quarters, a little toward the middle
     const f = 0.5 + 0.5 * Math.cos(a);                           // 1 at the front, 0 at the back
@@ -93,13 +111,14 @@ export const select = {
   resize(aspect: number): void { if (cam2) { cam2.aspect = aspect; cam2.updateProjectionMatrix(); } },
   get index(): number { return idx; },
   setVisible(v: boolean): void { visible = v; },
-  set(i: number, snap?: boolean): void { idx = ((i % 4) + 4) % 4; if (snap) { ang = tgt = Math.round(tgt / TAU) * TAU + idx * PI / 2; vel = 0; } },
+  set(i: number, snap?: boolean): void { const n = count(); idx = ((i % n) + n) % n; if (snap) { ang = tgt = Math.round(tgt / TAU) * TAU + idx * gap(); vel = 0; } },
   step(d: number): boolean {                                                       // d = +1: the next rider comes in from the right
-    const prev = idx; idx = (((idx + d) % 4) + 4) % 4;
-    tgt += d * PI / 2;
+    const n = count(), prev = idx; idx = (((idx + d) % n) + n) % n;
+    tgt += d * gap();
     return prev !== idx;
   },
-  snapTo(): void { ang = tgt; vel = 0; }
+  snapTo(): void { ang = tgt; vel = 0; },
+  addRider
 };
 
 ND.select = select;
