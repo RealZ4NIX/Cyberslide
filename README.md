@@ -15,7 +15,7 @@ Drop down an endless hill through a cyberpunk city, chain tricks and grinds, nai
 ![Vite](https://img.shields.io/badge/Vite-build-ffc23f?logo=vite&logoColor=white&labelColor=1a0b2e)
 ![Controller](https://img.shields.io/badge/controller-supported-b07cff?logo=playstation&logoColor=white&labelColor=1a0b2e)
 
-<img src="docs/screenshots/gameplay.gif" alt="Gameplay: dropping in, jumping and perfect landings" width="720">
+<img src="docs/screenshots/gameplay.webp" alt="Gameplay: up the side quarterpipe, a special in the air, perfect landing into a sky launch" width="720">
 
 </div>
 
@@ -26,6 +26,9 @@ Drop down an endless hill through a cyberpunk city, chain tricks and grinds, nai
 Retro PS2 looks, neon towers on both sides, a generated drum & bass soundtrack and a hill that never ends. Carve the
 bends, launch off kickers and quarterpipes, flip and grab in the air, then tap **Space** right before touchdown for a
 **perfect landing**. Easy to learn, hard to master.
+
+<img src="docs/screenshots/sky-special.jpg" alt="High above the side quarterpipe, doing Does W. a Spider Can in front of the sun" width="100%">
+<p align="center"><sub><b>NOSEGRAB + DOES W. A SPIDER CAN</b> Off the lip of a side quarterpipe: <kbd>←</kbd> <kbd>↓</kbd> + <kbd>A</kbd> with a full special meter</sub></p>
 
 <table>
   <tr>
