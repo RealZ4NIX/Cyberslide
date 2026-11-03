@@ -524,7 +524,7 @@ export function boot(): void {
   // chips with a draining bar for each running power: the timed boosts bottom left, the shield bottom right
   const chips = {};
   for (const k of ['over', 'x2', 'grav', 'shield']) {
-    const c = document.createElement('div'); c.className = 'pu'; c.style.setProperty('--pc', PW[k].css);
+    const c = document.createElement('div'); c.className = 'pu' + (k === 'x2' || k === 'shield' ? ' big' : ''); c.style.setProperty('--pc', PW[k].css);
     const img = document.createElement('img'); img.alt = ''; img.src = ND.pickups.iconURL ? ND.pickups.iconURL(k) : '';
     const b = document.createElement('b'); b.textContent = k === 'x2' ? '2X' : k === 'over' ? 'OVR' : k === 'grav' ? 'GRAV' : 'SHLD';
     const bar = document.createElement('i'), n = document.createElement('span');
