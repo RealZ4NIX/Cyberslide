@@ -31,7 +31,7 @@ quarterpipes and are stronger.
 
 - **Overclock** (red bolt): short hard speed boost with a glitch effect
 - **Score x2** (gold chip): double points for a few seconds
-- **Combo shield** (cyan shield): your next bail doesn't wipe the combo
+- **Combo shield** (cyan shield): your next bail within 20 s doesn't wipe the combo
 - **Low-grav** (purple planet): floatier, higher jumps
 - **Time chip** (green stopwatch, 2-minute mode only): adds seconds to the clock
 

@@ -71,9 +71,12 @@ textures when they load; import it first in a test that needs it.
 (about one in every two segments) sit just above the snow, on the run-in to a ramp, or on top of a ground rail.
 Sky pickups sit only above kickers, big ramps, mega ramps and side quarterpipes, a little above where an easy jump
 peaks, so you have to commit to reach them; the test in `powerups.test.ts` rides real jumps to prove each one can be
-reached. Sky versions last about 50% longer (shield: 2 bails, time: +10 s). Grabbing a power that is already running
+reached. Sky versions last about 50% longer (shield: 2 bails for 30 s instead of 1 for 20 s, time: +10 s). Grabbing a power that is already running
 refreshes its timer. Time chips only appear as time chips in the 2-minute mode; in endless the same spot gives
 another power. The tutorial has none.
+
+Picking one up shows a pop-up at the top centre with its icon, name and a draining bar; after about a second it
+shrinks into its chip (boosts bottom left, shield bottom right) or, for a time chip, flies into the clock.
 
 The effects live in `player.ts` (`power()`, plus the hooks in `addCombo`, `crash`, `ride`, `air` and `predict`), the
 clock, HUD rack and screen effects in `game.ts`.

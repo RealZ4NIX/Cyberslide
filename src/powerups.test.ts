@@ -8,7 +8,16 @@ import './world';
 import './riders';
 import './player';
 import { C, H, kindAt, seg, setCoursePlan } from './course';
-import { LOW_G, pickupKind, pickupsAt, POWER, Powers, touches, type Pickup } from './powerups';
+import {
+  LOW_G,
+  pickupKind,
+  pickupsAt,
+  POWER,
+  Powers,
+  SHIELD_T,
+  touches,
+  type Pickup,
+} from './powerups';
 
 const idle = () => ({
   left: false,
@@ -153,6 +162,18 @@ describe('timers', () => {
     expect(w.absorb()).toBe(true);
     expect(w.absorb()).toBe(false);
     expect(w.list().find((q) => q.kind === 'shield')).toBeUndefined();
+  });
+  it('an unused shield runs out after its time (longer from the sky)', () => {
+    const w = new Powers();
+    w.grant('shield', false);
+    w.tick(SHIELD_T[0] - 0.5);
+    expect(w.list().find((q) => q.kind === 'shield')?.left).toBeCloseTo(0.5 / SHIELD_T[0]);
+    w.tick(1);
+    expect(w.absorb()).toBe(false);
+    w.grant('shield', true);
+    w.tick(SHIELD_T[0] + 1);
+    expect(w.absorb()).toBe(true);
+    expect(SHIELD_T[1]).toBeGreaterThan(SHIELD_T[0]);
   });
 });
 

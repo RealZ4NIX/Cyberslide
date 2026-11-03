@@ -510,11 +510,7 @@ export function boot(): void {
   }
   function powerToast(d) {
     const def = PW[d.kind];
-    const what = d.kind === 'time' ? '+' + d.amount + ' SEC' : d.kind === 'shield' ? (d.amount > 1 ? d.amount + ' BAILS' : 'NEXT BAIL') : d.amount + ' S';
-    const t = document.createElement('div'); t.className = 'toast power' + (d.sky ? ' sky' : ''); t.style.setProperty('--pc', def.css);
-    t.textContent = (d.sky ? 'SKY ' : '') + def.name + '  ' + what;
-    el.feed.appendChild(t); while (el.feed.children.length > 6) el.feed.removeChild(el.feed.firstChild); setTimeout(() => t.remove(), 2200);
-    if (d.sky) { big(def.name, 'power'); el.big.style.setProperty('--pc', def.css); }
+    popShow(d.kind, d.sky, d.kind === 'time' ? '+' + d.amount + ' SEC' : '');
     pkFlash(def.css, d.sky);
     fovKick = Math.max(fovKick, d.kind === 'over' ? 10 : d.sky ? 6 : 3);
     ND.audio.sfx(d.sky ? 'pickupSky' : 'pickup');
@@ -525,25 +521,64 @@ export function boot(): void {
     f.className = ''; void f.offsetWidth; if (S.fx > 0) f.className = sky ? 'on sky' : 'on';
   }
   function shieldFlash() { pkFlash(PW.shield.css, true); }
-  // HUD rack: one chip per running power with a draining bar (shield shows how many bails it still takes)
-  const rack = $('pups'), chips = {};
+  // chips with a draining bar for each running power: the timed boosts bottom left, the shield bottom right
+  const chips = {};
   for (const k of ['over', 'x2', 'grav', 'shield']) {
     const c = document.createElement('div'); c.className = 'pu'; c.style.setProperty('--pc', PW[k].css);
     const img = document.createElement('img'); img.alt = ''; img.src = ND.pickups.iconURL ? ND.pickups.iconURL(k) : '';
     const b = document.createElement('b'); b.textContent = k === 'x2' ? '2X' : k === 'over' ? 'OVR' : k === 'grav' ? 'GRAV' : 'SHLD';
     const bar = document.createElement('i'), n = document.createElement('span');
-    c.append(img, b, bar, n); rack.appendChild(c); chips[k] = { c, bar, n, on: false };
+    c.append(img, b, bar, n); $(k === 'shield' ? 'pupsR' : 'pups').appendChild(c); chips[k] = { c, bar, n, on: false, ghost: false };
+  }
+  // pick-up pop-up: big at the top for about a second with its draining bar, then it shrinks into its chip
+  // (a time chip flies into the clock instead)
+  const POP_T = 1.0, FLY_T = 0.38;
+  const pop = { el: $('pupPop'), box: $('pupBox'), img: $('pupImg'), name: $('pupName'), tag: $('pupTag'), bar: $('pupBar'), kind: null, t: 0, phase: '' };
+  function popLand() {
+    if (!pop.kind) return;
+    const ch = chips[pop.kind];
+    if (ch && ch.ghost) { ch.ghost = false; ch.c.classList.remove('ghost'); }
+    if (pop.kind === 'time') { const tm = el.time; tm.classList.remove('tadd'); void tm.offsetWidth; tm.classList.add('tadd'); }
+    pop.kind = null; pop.phase = ''; pop.el.className = ''; pop.box.style.transform = ''; pop.box.style.opacity = '';
+  }
+  function popShow(kind, sky, extra) {
+    popLand();                                          // a new pickup sends the previous pop-up straight to its chip
+    const def = PW[kind];
+    pop.kind = kind; pop.t = 0; pop.phase = 'in';
+    pop.box.style.setProperty('--pc', def.css); pop.img.src = ND.pickups.iconURL ? ND.pickups.iconURL(kind, sky) : '';
+    pop.name.textContent = def.name + (extra ? '  ' + extra : '');
+    pop.tag.textContent = sky ? 'SKY' : '';
+    pop.box.classList.toggle('sky', !!sky); pop.box.classList.toggle('nobar', kind === 'time');
+    pop.box.style.transform = ''; pop.box.style.opacity = '';
+    pop.el.className = ''; void pop.el.offsetWidth; pop.el.className = 'show';
+    const ch = chips[kind];
+    if (ch) { ch.ghost = true; ch.c.classList.add('ghost'); }   // the chip holds its place, invisible, until the pop-up lands in it
+  }
+  function popStep(dt) {
+    if (!pop.kind) return;
+    pop.t += dt;
+    if (pop.phase === 'in' && pop.t >= POP_T) {
+      const target = pop.kind === 'time' ? el.time : chips[pop.kind] && chips[pop.kind].c;
+      if (!target) { popLand(); return; }
+      const a = pop.box.getBoundingClientRect(), b = target.getBoundingClientRect();
+      const sc = Math.max(0.2, Math.min(1, b.height / Math.max(1, a.height)));
+      const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top + b.height / 2 - (a.top + a.height / 2);
+      pop.phase = 'fly'; pop.t = 0; pop.el.className = 'show fly';
+      pop.box.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + sc + ')'; pop.box.style.opacity = '0.25';
+    } else if (pop.phase === 'fly' && pop.t >= FLY_T) popLand();
   }
   const gl = $('glitch'), gfx = $('gravfx');
-  function powerFx() {
+  function powerFx(dt) {
     const playing = state === 'play' || state === 'pause' || state === 'confirm' || state === 'countdown';
+    if (!playing) popLand(); else if (state === 'play') popStep(dt);
     const on = {};
     if (playing) for (const q of player.pw.list()) on[q.kind] = q;
     for (const k in chips) {
       const ch = chips[k], q = on[k];
-      if (!!q !== ch.on) { ch.on = !!q; ch.c.classList.toggle('on', ch.on); }
-      if (q) { ch.bar.style.width = Math.round(q.left * 100) + '%'; ch.n.textContent = q.n > 1 ? 'x' + q.n : ''; ch.c.classList.toggle('low', k !== 'shield' && q.left < 0.25); }
+      if (!!q !== ch.on) { ch.on = !!q; ch.c.classList.toggle('on', ch.on); if (!q && ch.ghost) { ch.ghost = false; ch.c.classList.remove('ghost'); } }
+      if (q) { ch.bar.style.width = Math.round(q.left * 100) + '%'; ch.n.textContent = q.n > 1 ? 'x' + q.n : ''; ch.c.classList.toggle('low', q.left < 0.25); }
     }
+    if (pop.kind && pop.kind !== 'time') pop.bar.style.width = (on[pop.kind] ? Math.round(on[pop.kind].left * 100) : 0) + '%';
     gl.className = playing && on.over && S.fx > 0 ? 'on' : '';
     canvas.classList.toggle('oc', !!(playing && on.over && S.fx > 0));
     gfx.className = playing && on.grav && S.fx > 0 ? 'on' : '';
@@ -1242,7 +1277,7 @@ export function boot(): void {
       player.pose(dt, NOINP);
     }
     if (state !== 'play') ND.pickups.update(state === 'countdown' ? dt : 0, player, player, false);
-    powerFx();
+    powerFx(dt);
     const inMenu = state === 'menu';
     if (inMenu) { player.group.visible = false; player.trail.visible = false; }
     player.glow.visible = !inMenu;

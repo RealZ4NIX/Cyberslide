@@ -24,6 +24,8 @@ export const POWER: Record<PowerKind, PowerDef> = {
   grav: { name: 'LOW-GRAV', color: 0xb07cff, css: '#b07cff', amount: [5, 7.5] },
   time: { name: 'TIME CHIP', color: 0x3dff8a, css: '#3dff8a', amount: [5, 10] },
 };
+/** how long a combo shield waits for a bail before it runs out (s), [track, sky] */
+export const SHIELD_T: [number, number] = [20, 30];
 /** instant speed an overclock pickup adds (m/s), [track, sky] */
 export const OVER_KICK: [number, number] = [7, 10];
 /** gravity while a low-grav field is on */
@@ -232,23 +234,33 @@ export class Powers {
   x2Max = 0;
   grav = 0;
   gravMax = 0;
-  /** bails the shield will still absorb */
+  /** bails the shield will still absorb, and how long it lasts */
   shield = 0;
+  shieldT = 0;
+  shieldMax = 0;
 
   reset(): void {
-    this.over = this.overMax = this.x2 = this.x2Max = this.grav = this.gravMax = this.shield = 0;
+    this.over = this.overMax = this.x2 = this.x2Max = this.grav = this.gravMax = 0;
+    this.shield = this.shieldT = this.shieldMax = 0;
   }
   tick(dt: number): void {
     if (this.over > 0) this.over = Math.max(0, this.over - dt);
     if (this.x2 > 0) this.x2 = Math.max(0, this.x2 - dt);
     if (this.grav > 0) this.grav = Math.max(0, this.grav - dt);
+    if (this.shieldT > 0) {
+      this.shieldT = Math.max(0, this.shieldT - dt);
+      if (this.shieldT <= 0) this.shield = 0;
+    }
   }
   grant(kind: PowerKind, sky: boolean): Grant {
     const amount = POWER[kind].amount[sky ? 1 : 0];
     if (kind === 'over') this.over = this.overMax = amount;
     else if (kind === 'x2') this.x2 = this.x2Max = amount;
     else if (kind === 'grav') this.grav = this.gravMax = amount;
-    else if (kind === 'shield') this.shield = Math.max(this.shield, amount);
+    else if (kind === 'shield') {
+      this.shield = Math.max(this.shield, amount);
+      this.shieldT = this.shieldMax = SHIELD_T[sky ? 1 : 0];
+    }
     return { kind, sky, amount };
   }
   /** overclock strength 0..1, easing out over its last 0.4 s */
@@ -266,15 +278,17 @@ export class Powers {
   absorb(): boolean {
     if (this.shield <= 0) return false;
     this.shield--;
+    if (this.shield <= 0) this.shieldT = 0;
     return true;
   }
-  /** what is running, for the HUD: kind, fraction left (shield: charges) */
+  /** what is running, for the HUD: kind, fraction of its time left (shield: also the bails it still takes) */
   list(): { kind: PowerKind; left: number; n?: number }[] {
     const a: { kind: PowerKind; left: number; n?: number }[] = [];
     if (this.over > 0) a.push({ kind: 'over', left: this.over / this.overMax });
     if (this.x2 > 0) a.push({ kind: 'x2', left: this.x2 / this.x2Max });
     if (this.grav > 0) a.push({ kind: 'grav', left: this.grav / this.gravMax });
-    if (this.shield > 0) a.push({ kind: 'shield', left: 1, n: this.shield });
+    if (this.shield > 0)
+      a.push({ kind: 'shield', left: this.shieldT / this.shieldMax, n: this.shield });
     return a;
   }
 }
