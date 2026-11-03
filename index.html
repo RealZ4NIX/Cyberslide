@@ -3031,11 +3031,19 @@
       const prevSpace = this.wasSpace;
       this.spacePressed = inp.space && !prevSpace;
       this.gScale = 1 + Math.min(0.45, this.dist / 6000);
-      switch (this.state) {
-        case 'ride': this.ride(dt, inp); break;
-        case 'air': this.air(dt, inp); break;
-        case 'grind': this.grind(dt, inp); break;
-        case 'crash': this.crashStep(dt); break;
+      // fast riders cover several metres a frame, enough to skip straight through a steep ramp lip: ride and air are stepped in
+      // sub-steps of at most ~0.45 m so the ground is checked all along the path (the other states take the rest of the frame)
+      const subs = Math.min(10, Math.max(1, Math.ceil(this.speed * dt / 0.45)));
+      let left = dt;
+      for (let i = 0; i < subs + 2 && left > 1e-6; i++) {
+        const h = (this.state === 'ride' || this.state === 'air') && subs > 1 ? Math.min(left, dt / subs) : left;
+        switch (this.state) {
+          case 'ride': this.ride(h, inp); break;
+          case 'air': this.air(h, inp); break;
+          case 'grind': this.grind(h, inp); break;
+          case 'crash': this.crashStep(h); break;
+        }
+        left -= h;
       }
       this.wasSpace = inp.space;
       if (this.speedCap && this.speed > this.speedCap) this.speed = this.speedCap;   // tutorial: keep the pace calm
@@ -3509,7 +3517,7 @@
           text: () => 'In the air: hold ' + K('trick') + ' and press ' + K('up') + ' (frontflip) or ' + K('down') + ' (backflip).<br><span class="dim">Needs a high jump. Land it clean.</span>' },
         { badge: 'DIAGONAL', title: 'DIAGONAL FLIP', need: 1,
           ev: (e, d) => e === 'trick' && /(BACK|FRONT)FLIP/.test(d.name || '') && d.chain >= 2,   // a flip scored right after a spin = both in one jump
-          text: () => 'Spin <b>and</b> flip at once: hold ' + K('trick') + ' and press two arrows together, like ' + K('left') + ' + ' + K('down') + '.<br><span class="dim">Needs a high jump. Land it clean.</span>' },
+          text: () => 'Spin <b>and</b> flip at once: hold ' + K('trick') + ' and press two arrows together, like ' + K('left') + ' + ' + K('down') + '.<br><span class="dim">Needs a high jump. Hold for about half a second, then let go and land.</span>' },
         { badge: 'COMBO', title: 'COMBO & BANK', need: 1, ev: (e) => e === 'bank' && P.combo.entries >= 2,
           text: () => 'Land <b>two tricks</b>, then ride on for 2 s without tricking: the combo <b>banks</b>.<br><span class="dim">A wipeout loses the combo, so bank it!</span>' }
       ]
