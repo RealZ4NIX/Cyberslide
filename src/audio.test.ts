@@ -124,6 +124,8 @@ describe('with an audio context', () => {
       'pickup',
       'pickupSky',
       'shield',
+      'count',
+      'go',
     ];
     for (const n of names) {
       const before = log.started;
