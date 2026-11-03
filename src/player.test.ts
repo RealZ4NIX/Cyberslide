@@ -192,3 +192,58 @@ describe('side quarterpipe', () => {
     expect(p.state).toBe('ride');
   });
 });
+
+describe('scoring', () => {
+  const kickflip = () => ND.TRICKS.find((t: { name: string }) => t.name === 'Kickflip');
+
+  it('a spin and a trick in one jump score as one mixed trick worth double their parts', () => {
+    const { p, events } = mkPlayer();
+    Object.assign(p, { state: 'air', airT: 1.2, yawRot: 2 * Math.PI, queued: [kickflip()] });
+    p.creditAir(true);
+    const tr = events.filter((e) => e.n === 'trick');
+    expect(tr).toHaveLength(1);
+    expect(tr[0].d.name).toBe('360 KICKFLIP');
+    expect(tr[0].d.parts).toEqual(['360', 'Kickflip']);
+    expect(tr[0].d.pts).toBe(2 * (480 + kickflip().pts));
+    expect(p.combo.entries).toBe(2); // still counts both toward the combo multiplier
+  });
+
+  it('three parts pay x2.5, a lone trick pays its own value', () => {
+    const a = mkPlayer();
+    Object.assign(a.p, {
+      state: 'air',
+      airT: 1.2,
+      yawRot: Math.PI,
+      flipRot: -2 * Math.PI,
+      queued: [kickflip()],
+    });
+    a.p.creditAir(true);
+    expect(a.events.find((e) => e.n === 'trick')?.d.pts).toBe(
+      Math.round(2.5 * (200 + 600 + kickflip().pts)),
+    );
+    const b = mkPlayer();
+    Object.assign(b.p, { state: 'air', airT: 1.2, queued: [kickflip()] });
+    b.p.creditAir(true);
+    expect(b.events.find((e) => e.n === 'trick')?.d).toMatchObject({
+      name: 'Kickflip',
+      pts: kickflip().pts,
+    });
+  });
+
+  it('perfect landings in a row stack, a normal landing resets the streak', () => {
+    const { p, events } = mkPlayer();
+    const jump = (armed: boolean) => {
+      const y = H(p.x, p.s);
+      Object.assign(p, { state: 'air', airT: 1.5, peakAir: 6, perfectArm: armed, y });
+      p.land(y);
+    };
+    jump(true);
+    jump(true);
+    jump(true);
+    const perf = () => events.filter((e) => e.n === 'perfect').map((e) => e.d.pts);
+    expect(perf()).toEqual([600, 1200, 1800]);
+    jump(false);
+    jump(true);
+    expect(perf().at(-1)).toBe(600);
+  });
+});

@@ -476,7 +476,7 @@ export function boot(): void {
       ND.tutorial.event(n, d);
       if (n === 'crash') { toast('WIPEOUT  no worries, try again', 'info'); ND.audio.sfx('crash'); ND.audio.grind(false, 0); return; }   // practice: no FAIL drop
     }
-    if (n === 'trick') { toast(d.name + (d.pts ? '  +' + fmt(d.pts) : '') + (d.chain > 1 ? '  CHAIN x' + d.chain : ''), 'trick', d.input); ND.audio.sfx('trick'); }
+    if (n === 'trick') { toast(d.name + (d.pts ? '  +' + fmt(d.pts) : '') + (d.mix ? '  MIX x' + d.mix : d.chain > 1 ? '  CHAIN x' + d.chain : ''), 'trick', d.input); ND.audio.sfx('trick'); }
     else if (n === 'bank') { toast('COMBO BANKED +' + fmt(d.total), 'bank'); big('+' + fmt(d.total), 'bank'); ND.audio.sfx('bank'); }
     else if (n === 'crash') { toast((d.reason || 'Wipeout').toUpperCase() + (d.lost ? '  combo lost -' + fmt(d.lost) : ''), 'bad'); if (d.lost > 0) showFail(d.reason, d.lost); else big(d.reason === 'Bad landing' ? 'BAD LANDING' : 'WIPEOUT', 'bad'); ND.audio.sfx('crash'); ND.audio.grind(false, 0); }
     else if (n === 'perfect') { big('PERFECT!', 'perfect'); burst(d.x, d.y, d.s); ND.audio.sfx('perfect'); }

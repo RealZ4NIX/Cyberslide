@@ -26,7 +26,8 @@ const trickKeys = (name) => {
 };
 const isGrab = (name) => { const d = ND.TRICKS.find((t) => t.name === name); return !!d && d.btn === 'D' && !d.sp; };
 const landed = (min) => (e, d) => e === 'land' && d.air >= min;
-const named = (re) => (e, d) => e === 'trick' && re.test(d.name || '');
+const parts = (d) => d.parts || [d.name || ''];   // a mixed trick (spin + kickflip in one jump) lists every part
+const named = (re) => (e, d) => e === 'trick' && parts(d).some((n) => re.test(n));
 const wallSide = () => {
   const k0 = Math.floor(P.s / SEG);
   for (let k = k0; k <= k0 + 5; k++) for (const w of ND.seg(k).walls) if (w.s + w.len > P.s) return w.side;
@@ -51,14 +52,14 @@ const CH = [
         text: () => 'The longer you hold ' + K('space') + ', the higher you go.<br><span class="dim">Crouch all the way down, then let go.</span>' },
       { badge: 'KICKFLIP', title: 'KICKFLIP', need: 1, ev: named(/^Kickflip$/),
         text: () => 'In the air: ' + trickKeys('Kickflip') + '.<br><span class="dim">Arrow first, button right after. Then land it.</span>' },
-      { badge: 'GRAB', title: 'GRAB', need: 3, ev: (e, d) => e === 'trick' && isGrab(d.name),
+      { badge: 'GRAB', title: 'GRAB', need: 3, ev: (e, d) => e === 'trick' && parts(d).some(isGrab),
         text: () => 'In the air: press ' + K('grab') + ' to grab the board.<br><span class="dim">Tricks count when you land. Three grabs.</span>' },
       { badge: '180', title: '180 SPIN', need: 3, ev: named(/^\d+( SWITCH)?$/),
         text: () => 'In the air: hold ' + K('trick') + ' and press ' + K('left') + ' or ' + K('right') + '.<br><span class="dim">Half a turn, then land. Landing backwards is fine. Three spins.</span>' },
       { badge: 'FLIP', title: 'FRONTFLIP OR BACKFLIP', need: 1, ev: named(/(BACK|FRONT)FLIP/),
         text: () => 'In the air: hold ' + K('trick') + ' and press ' + K('up') + ' (frontflip) or ' + K('down') + ' (backflip).<br><span class="dim">Needs a high jump. Land it clean.</span>' },
       { badge: 'DIAGONAL', title: 'DIAGONAL FLIP', need: 1,
-        ev: (e, d) => e === 'trick' && /(BACK|FRONT)FLIP/.test(d.name || '') && d.chain >= 2,   // a flip scored right after a spin = both in one jump
+        ev: (e, d) => e === 'trick' && parts(d).some((n) => /(BACK|FRONT)FLIP/.test(n)) && parts(d).some((n) => /^\d+$/.test(n)),   // a spin and a flip in one jump
         text: () => 'Spin <b>and</b> flip at once: hold ' + K('trick') + ' and press two arrows together, like ' + K('left') + ' + ' + K('down') + '.<br><span class="dim">Needs a high jump. Hold for about half a second, then let go and land.</span>' },
       { badge: 'COMBO', title: 'COMBO & BANK', need: 1, ev: (e) => e === 'bank' && P.combo.entries >= 2,
         text: () => 'Land <b>two tricks</b>, then ride on for 2 s without tricking: the combo <b>banks</b>.<br><span class="dim">A wipeout loses the combo, so bank it!</span>' }

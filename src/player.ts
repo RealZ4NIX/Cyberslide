@@ -14,6 +14,8 @@ const CHORD_T = 0.075;     // two arrows pressed this close together make a diag
 const OPP = { U: 'D', D: 'U', L: 'R', R: 'L' };
 const sm = (t) => { t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t); };
 const lerp = (a, b, t) => a + (b - a) * t;
+/** score multiplier for mixing this many parts (spin, flip, tricks) into one jump */
+export const mixMult = (n) => (n < 2 ? 1 : 1 + 0.5 * n);
 const GRAB = {
   left: { name: 'Indy', rate: 120, y: 0.5, rx: 0, rz: 0 },
   right: { name: 'Method', rate: 220, y: 0.62, rx: 0, rz: 0.55 },
@@ -101,7 +103,7 @@ class Player {
     this.boostT = 0; this.boostPow = 0; this.boostMax = 1;
     this.tumble = { x: 0, z: 0, vx: 0, vz: 0 }; this.crashT = 0;
     this.special = 0; this.dirPrev = {}; this.heldDirs = []; this.chord = null; this.tokens = []; this.wasFlip = false; this.wasGrab = false;
-    this.resetAir(); this.spaceLock = 0; this.holdLock = false; this.wallCool = 0; this.pipeCool = 0; this.readyT = 0; this.readyC = 0;
+    this.resetAir(); this.spaceLock = 0; this.holdLock = false; this.wallCool = 0; this.pipeCool = 0; this.readyT = 0; this.readyC = 0; this.perfStreak = 0;
     this.group.visible = true; this.trailPts.length = 0;
   }
   resetAir() {
@@ -229,13 +231,14 @@ class Player {
 
   mult() { return 1 + 0.2 * this.combo.entries; }   // no cap
 
-  addCombo(name, pts, sp, chain, nofill, def) {
+  addCombo(name, pts, sp, chain, nofill, def, mix) {
     const c = this.combo;
     if (!sp && !nofill) this.fill(0.16);
     if (chain > 1) pts = Math.round(pts * (1 + 0.35 * (chain - 1)));   // chain bonus: each extra trick in one jump pays more
-    c.pts += pts; c.entries++; c.timer = CHAIN_TIME * this.k.chain; c.active = true;
-    this.stats.tricks++;
-    this.emit('trick', { name, pts, chain: chain || 0, input: def ? ND.trickInput(def) : '' });
+    const n = mix ? mix.parts.length : 1;   // a mixed trick counts every part toward the combo multiplier
+    c.pts += pts; c.entries += n; c.timer = CHAIN_TIME * this.k.chain; c.active = true;
+    this.stats.tricks += n;
+    this.emit('trick', { name, pts, chain: chain || 0, input: def ? ND.trickInput(def) : '', parts: mix ? mix.parts : [name], mix: mix ? mix.x : 0 });
   }
   bank() {
     const c = this.combo;
@@ -251,21 +254,27 @@ class Player {
   creditAir(landing) {
     const spins = Math.round(Math.abs(this.yawRot) / Math.PI);
     const flips = Math.round(Math.abs(this.flipRot) / TAU);
-    let any = false, n = 0;
-    if (spins > 0) {
-      const odd = spins % 2 === 1 && landing;
-      this.addCombo((spins * 180) + (odd ? ' SWITCH' : ''), Math.round(200 * spins * (1 + 0.2 * (spins - 1))), false, ++n);
-      any = true;
-    }
-    if (flips > 0) {
-      this.addCombo((flips > 1 ? flips + 'x ' : '') + (this.flipRot < 0 ? 'FRONTFLIP' : 'BACKFLIP'), 600 * flips, false, ++n);
-      any = true;
-    }
-    for (const q of this.queued) { this.addCombo(q.name, q.sp && this.megaAir ? q.pts * 2 : q.pts, q.sp, ++n, true, q); any = true; }   // air tricks already filled the meter when they started
+    // every part of the jump: body spin, body flip, then the flip/grab/special tricks in the order they were done
+    const parts = [];
+    if (spins > 0) parts.push({ name: String(spins * 180), pts: Math.round(200 * spins * (1 + 0.2 * (spins - 1))), body: true });
+    if (flips > 0) parts.push({ name: (flips > 1 ? flips + 'x ' : '') + (this.flipRot < 0 ? 'FRONTFLIP' : 'BACKFLIP'), pts: 600 * flips, body: true });
+    for (const q of this.queued) parts.push({ name: q.name, pts: q.sp && this.megaAir ? q.pts * 2 : q.pts, def: q, sp: q.sp });   // air tricks already filled the meter when they started
     this.queued = [];
-    if (!any && this.airT > 0.9) this.addCombo('BIG AIR', Math.round(this.airT * 160));
+    const sw = spins % 2 === 1 && landing ? ' SWITCH' : '';
+    if (parts.length === 1) {
+      const a = parts[0];
+      this.addCombo(a.name + (a.body ? sw : ''), a.pts, a.sp, 1, !a.body, a.def);
+    } else if (parts.length > 1) {
+      // mixing them in one jump makes one trick worth far more than its parts: 2 parts x2, 3 parts x2.5, 4 parts x3...
+      const x = mixMult(parts.length);
+      for (const a of parts) if (a.body) this.fill(0.16);
+      const def = parts.find((a) => a.def)?.def;
+      this.addCombo(parts.map((a) => a.name.toUpperCase()).join(' ') + sw, Math.round(x * parts.reduce((v, a) => v + a.pts, 0)),
+        parts.some((a) => a.sp), 1, true, def, { parts: parts.map((a) => a.name), x });
+    }
+    if (!parts.length && this.airT > 0.9) this.addCombo('BIG AIR', Math.round(this.airT * 160));
     if (this.airT > this.stats.bestAir) this.stats.bestAir = this.airT;
-    return any;
+    return parts.length > 0;
   }
 
   jump(v) {
@@ -278,7 +287,7 @@ class Player {
     const lost = Math.round(this.combo.pts * this.mult());
     this.combo.pts = 0; this.combo.entries = 0; this.combo.active = false; this.combo.timer = 0;
     this.stats.crashes++; this.boostT = 0; this.special = 0;
-    this.state = 'crash'; this.crashT = 0;
+    this.state = 'crash'; this.crashT = 0; this.perfStreak = 0;
     this.tumble.vx = 6 + Math.random() * 4; this.tumble.vz = (Math.random() - 0.5) * 8;
     this.resetAir();
     this.emit('crash', { reason, lost });
@@ -505,10 +514,12 @@ class Player {
     this.emit('land', { air: this.airT });
     let perfPts = 0;
     if (armed) {
-      perfPts = Math.round(300 + 300 * Math.min(1, this.peakAir / 6));
-      this.addCombo('PERFECT LANDING', perfPts);
-      this.emit('perfect', { pts: perfPts, x: this.x, y: gy, s: this.s });
-    }
+      // perfect landings in a row stack: the 2nd pays double, the 3rd triple... any other real landing or a crash resets it
+      this.perfStreak++;
+      perfPts = Math.round((300 + 300 * Math.min(1, this.peakAir / 6)) * this.perfStreak);
+      this.addCombo('PERFECT LANDING' + (this.perfStreak > 1 ? ' x' + this.perfStreak : ''), perfPts);
+      this.emit('perfect', { pts: perfPts, x: this.x, y: gy, s: this.s, streak: this.perfStreak });
+    } else if (this.airT > 0.55 && this.peakAir > 1.8) this.perfStreak = 0;   // small hops that could never be perfect don't break it
     if (armed) {
       // perfect landing: land already crouched, ready to pop again. Still holding Space = keep charging, release to jump.
       this.holdLock = false; this.readyC = 0.45; this.readyT = 0.9;
