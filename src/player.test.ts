@@ -247,3 +247,47 @@ describe('scoring', () => {
     expect(perf().at(-1)).toBe(600);
   });
 });
+
+describe('grinds never slow you down', () => {
+  const rail = (s: number, tier: 0 | 1 | 2 | 3) => ({
+    x: C(s),
+    x1: C(s),
+    s,
+    len: 40,
+    tier,
+    h: 3,
+    h1: 3,
+    inc: 6,
+    rise: 1.5,
+    tol: 1.8,
+  });
+  for (const v of [18, 40, 64, 80]) {
+    it('entering at ' + v + ' m/s: on the rail, along it and off the end', () => {
+      const { p } = mkPlayer();
+      p.s = 100;
+      p.x = C(p.s);
+      p.speed = v;
+      p.startGrind(rail(p.s, 1));
+      expect(p.speed).toBeGreaterThanOrEqual(v);
+      let prev = p.speed;
+      for (let f = 0; f < 240 && p.state === 'grind'; f++) {
+        p.update(DT, idle());
+        expect(p.speed).toBeGreaterThanOrEqual(prev - 1e-9);
+        prev = p.speed;
+      }
+      expect(p.state).toBe('air');
+      expect(p.speed).toBeGreaterThanOrEqual(v);
+    });
+  }
+  it('jumping off a rail fast keeps the speed too', () => {
+    const { p } = mkPlayer();
+    p.s = 100;
+    p.x = C(p.s);
+    p.speed = 80;
+    p.startGrind(rail(p.s, 0));
+    run(p, 0.2);
+    run(p, 0.05, () => ({ space: true }));
+    expect(p.state).toBe('air');
+    expect(p.speed).toBeGreaterThanOrEqual(80);
+  });
+});

@@ -24,7 +24,7 @@ const GRAB = {
   down: { name: 'Tail', rate: 160, y: 0.5, rx: 0.55, rz: 0 },
   none: { name: 'Mute', rate: 100, y: 0.45, rx: 0, rz: 0 }
 };
-const GRIND_MAXV = 64;
+const GRIND_MAXV = 64;   // rails only push you up to this speed; they never take speed away if you are already faster
 const GRIND = {
   '50-50': { rate: 150, yaw: 0, rx: 0 },
   'Boardslide': { rate: 250, yaw: Math.PI / 2, rx: 0 },
@@ -587,7 +587,7 @@ class Player {
     this.emit('trick', { name: '50-50 GRIND', pts: 0 });
     if (rail.tier) this.addCombo(rail.tier === 3 ? 'WINDOW RAIL' : rail.tier === 2 ? 'SKY RAIL' : 'HIGH RAIL', [0, 300, 800, 1200][rail.tier]);
     // getting on a rail kicks you forward
-    this.speed = Math.min(GRIND_MAXV, Math.max(this.speed, 20) + 4 + 1.2 * rail.tier);
+    this.speed = Math.max(this.speed, Math.min(GRIND_MAXV, Math.max(this.speed, 20) + 4 + 1.2 * rail.tier));
     this.boostPow = Math.max(this.boostNow, 0.55 + 0.1 * rail.tier); this.boostT = this.boostMax = 1.3;
     this.emit('boost', { pow: this.boostPow, rail: 'on' });
     this.emit('grindStart');
@@ -596,7 +596,7 @@ class Player {
   // leaving a rail (end of the rail or a jump off): the longer and busier the grind, the bigger the kick
   endGrind() {
     const r = this.rail, bonus = Math.min(11, (3.5 + 2.2 * this.grindT + 1.4 * (this.grindUsed.size - 1) + 1.1 * r.tier) * this.k.grindKick);
-    this.speed = Math.min(GRIND_MAXV, this.speed + bonus);
+    this.speed = Math.max(this.speed, Math.min(GRIND_MAXV, this.speed + bonus));
     const pw = Math.min(1.4, 0.5 + bonus / 14 + 0.1 * r.tier);
     this.boostPow = Math.max(this.boostNow, pw); this.boostT = this.boostMax = 1.5 + 0.9 * pw;
     this.emit('boost', { pow: pw, rail: 'off' });
@@ -615,7 +615,7 @@ class Player {
     }
     this.grindT += dt;
     this.combo.pts += GRIND[n].rate * 2 * [1, 1.5, 2.2, 3][this.rail.tier] * this.k.grindPts * this.pw.scoreMult * dt; this.combo.timer = CHAIN_TIME * this.k.chain; this.combo.active = true;
-    this.speed = Math.min(GRIND_MAXV, this.speed + (3.5 + 0.8 * this.rail.tier) * this.k.grindKick * dt);   // rails speed you up
+    this.speed = Math.max(this.speed, Math.min(GRIND_MAXV, this.speed + (3.5 + 0.8 * this.rail.tier) * this.k.grindKick * dt));   // rails speed you up, never down
     const px = this.x;
     this.s += this.speed * dt;
     this.x = ND.railX(this.rail, this.s); this.y = ND.railY(this.rail, this.s);
