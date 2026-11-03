@@ -14,6 +14,8 @@ src/
 
   course.ts           the hill as pure data: segment kinds, bends, ramps, rails, dips, walls, height field
   world.ts            turns the course into meshes and streams chunks around the rider
+  powerups.ts         power-ups as pure data: where pickups sit, what each does, the timers on the rider
+  pickups.ts          draws the pickups as spinning holograms and finds when the rider touches one
   city.ts             neon city scenery: districts, signs, billboards, steam, cables
   riders.ts           the four rider models plus secret SKELLY, their stats and stat-to-physics multipliers
   riderSelect.ts      the spinning rider ring in the menu
@@ -39,7 +41,7 @@ adding imports.
 ## Typing status
 
 `tsconfig.json` is strict. These modules are fully typed: `course`, `world`, `audio`, `scores`, `tricks`,
-`gamepad`, `riderSelect`, `secretCode`.
+`gamepad`, `riderSelect`, `secretCode`, `powerups`, `pickups`.
 
 These were ported as-is and still start with `// @ts-nocheck`, so the compiler doesn't check them yet:
 `player`, `game`, `city`, `riders`, `tutorial`. They behave exactly as before; typing them is the next step.
@@ -60,3 +62,18 @@ textures when they load; import it first in a test that needs it.
 - `audio.test.ts`: safe before the context exists, mixer setup, every sound effect, music scheduling
 - `riders.test.ts`: stats, multipliers, every model builds, the secret rider unlock
 - `secretCode.test.ts`: code sequences, junk input, wrong order, timeout between inputs
+- `powerups.test.ts`: placement (deterministic, leaves the course alone, track common / sky rare), touching,
+  timers, every effect on the real player, and that a real jump reaches every sky pickup
+
+## Power-ups
+
+`powerups.ts` places them with its own seeded random stream, so the course itself never changes. Track pickups
+(about one in every two segments) sit just above the snow, on the run-in to a ramp, or on top of a ground rail.
+Sky pickups sit only above kickers, big ramps, mega ramps and side quarterpipes, a little above where an easy jump
+peaks, so you have to commit to reach them; the test in `powerups.test.ts` rides real jumps to prove each one can be
+reached. Sky versions last about 50% longer (shield: 2 bails, time: +10 s). Grabbing a power that is already running
+refreshes its timer. Time chips only appear as time chips in the 2-minute mode; in endless the same spot gives
+another power. The tutorial has none.
+
+The effects live in `player.ts` (`power()`, plus the hooks in `addCombo`, `crash`, `ride`, `air` and `predict`), the
+clock, HUD rack and screen effects in `game.ts`.

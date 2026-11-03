@@ -5,6 +5,7 @@ import './audio';
 import './scores';
 import './tricks';
 import './world';
+import './pickups';
 import './city';
 import './riders';
 import './riderSelect';

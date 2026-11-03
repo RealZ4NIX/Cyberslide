@@ -135,6 +135,7 @@ export function boot(): void {
 
   /* ---------- world + player ---------- */
   ND.world.init(scene);
+  ND.pickups.init(scene);
   ND.city.init(scene);
   const RIDER_KEY = 'cyberslide-rider';
   try { ND.riderId = localStorage.getItem(RIDER_KEY) || 'nova'; } catch (e) { ND.riderId = 'nova'; }
@@ -476,8 +477,10 @@ export function boot(): void {
       ND.tutorial.event(n, d);
       if (n === 'crash') { toast('WIPEOUT  no worries, try again', 'info'); ND.audio.sfx('crash'); ND.audio.grind(false, 0); return; }   // practice: no FAIL drop
     }
-    if (n === 'trick') { toast(d.name + (d.pts ? '  +' + fmt(d.pts) : '') + (d.mix ? '  MIX x' + d.mix : d.chain > 1 ? '  CHAIN x' + d.chain : ''), 'trick', d.input); ND.audio.sfx('trick'); }
+    if (n === 'trick') { toast(d.name + (d.pts ? '  +' + fmt(d.pts) : '') + (d.x2 ? '  2X' : '') + (d.mix ? '  MIX x' + d.mix : d.chain > 1 ? '  CHAIN x' + d.chain : ''), 'trick', d.input); ND.audio.sfx('trick'); }
     else if (n === 'bank') { toast('COMBO BANKED +' + fmt(d.total), 'bank'); big('+' + fmt(d.total), 'bank'); ND.audio.sfx('bank'); }
+    else if (n === 'crash' && d.shielded) { toast((d.reason || 'Wipeout').toUpperCase() + '  COMBO SHIELD  combo saved', 'shield'); big('SAVED', 'shield'); shieldFlash(); ND.audio.sfx('crash'); ND.audio.sfx('shield'); ND.audio.grind(false, 0); }
+    else if (n === 'power') powerToast(d);
     else if (n === 'crash') { toast((d.reason || 'Wipeout').toUpperCase() + (d.lost ? '  combo lost -' + fmt(d.lost) : ''), 'bad'); if (d.lost > 0) showFail(d.reason, d.lost); else big(d.reason === 'Bad landing' ? 'BAD LANDING' : 'WIPEOUT', 'bad'); ND.audio.sfx('crash'); ND.audio.grind(false, 0); }
     else if (n === 'perfect') { big('PERFECT!', 'perfect'); burst(d.x, d.y, d.s); ND.audio.sfx('perfect'); }
     else if (n === 'arm') ND.audio.sfx('arm');
@@ -495,6 +498,57 @@ export function boot(): void {
     else if (n === 'grindStart') ND.audio.grind(true, player.speed);
     else if (n === 'grindEnd') ND.audio.grind(false, 0);
   };
+
+  /* ---------- power-ups (powerups.ts / pickups.ts) ---------- */
+  const PW = ND.POWER;
+  function takePower(g) {
+    if (g.kind === 'time') {
+      const add = PW.time.amount[g.p.sky ? 1 : 0];
+      timeLeft += add;
+      powerToast({ kind: 'time', sky: g.p.sky, amount: add });
+    } else player.power(g.kind, g.p.sky);
+  }
+  function powerToast(d) {
+    const def = PW[d.kind];
+    const what = d.kind === 'time' ? '+' + d.amount + ' SEC' : d.kind === 'shield' ? (d.amount > 1 ? d.amount + ' BAILS' : 'NEXT BAIL') : d.amount + ' S';
+    const t = document.createElement('div'); t.className = 'toast power' + (d.sky ? ' sky' : ''); t.style.setProperty('--pc', def.css);
+    t.textContent = (d.sky ? 'SKY ' : '') + def.name + '  ' + what;
+    el.feed.appendChild(t); while (el.feed.children.length > 6) el.feed.removeChild(el.feed.firstChild); setTimeout(() => t.remove(), 2200);
+    if (d.sky) { big(def.name, 'power'); el.big.style.setProperty('--pc', def.css); }
+    pkFlash(def.css, d.sky);
+    fovKick = Math.max(fovKick, d.kind === 'over' ? 10 : d.sky ? 6 : 3);
+    ND.audio.sfx(d.sky ? 'pickupSky' : 'pickup');
+    if (d.kind === 'over') ND.audio.sfx('boost');
+  }
+  function pkFlash(css, sky) {
+    const f = $('pkflash'); f.style.setProperty('--pc', css);
+    f.className = ''; void f.offsetWidth; if (S.fx > 0) f.className = sky ? 'on sky' : 'on';
+  }
+  function shieldFlash() { pkFlash(PW.shield.css, true); }
+  // HUD rack: one chip per running power with a draining bar (shield shows how many bails it still takes)
+  const rack = $('pups'), chips = {};
+  for (const k of ['over', 'x2', 'grav', 'shield']) {
+    const c = document.createElement('div'); c.className = 'pu'; c.style.setProperty('--pc', PW[k].css);
+    const img = document.createElement('img'); img.alt = ''; img.src = ND.pickups.iconURL ? ND.pickups.iconURL(k) : '';
+    const b = document.createElement('b'); b.textContent = k === 'x2' ? '2X' : k === 'over' ? 'OVR' : k === 'grav' ? 'GRAV' : 'SHLD';
+    const bar = document.createElement('i'), n = document.createElement('span');
+    c.append(img, b, bar, n); rack.appendChild(c); chips[k] = { c, bar, n, on: false };
+  }
+  const gl = $('glitch'), gfx = $('gravfx');
+  function powerFx() {
+    const playing = state === 'play' || state === 'pause' || state === 'confirm' || state === 'countdown';
+    const on = {};
+    if (playing) for (const q of player.pw.list()) on[q.kind] = q;
+    for (const k in chips) {
+      const ch = chips[k], q = on[k];
+      if (!!q !== ch.on) { ch.on = !!q; ch.c.classList.toggle('on', ch.on); }
+      if (q) { ch.bar.style.width = Math.round(q.left * 100) + '%'; ch.n.textContent = q.n > 1 ? 'x' + q.n : ''; ch.c.classList.toggle('low', k !== 'shield' && q.left < 0.25); }
+    }
+    gl.className = playing && on.over && S.fx > 0 ? 'on' : '';
+    canvas.classList.toggle('oc', !!(playing && on.over && S.fx > 0));
+    gfx.className = playing && on.grav && S.fx > 0 ? 'on' : '';
+    el.combo.classList.toggle('x2', !!on.x2);
+  }
 
   /* ---------- game flow ---------- */
   let mode = 'timed', state = 'menu', timeLeft = 120, cd = 0, last = performance.now(), camHead = 0, camY = 0, camLook = 0, camDown = 0;
@@ -691,7 +745,7 @@ export function boot(): void {
     mode = m; player.setRider(tut ? 'nova' : ND.riderId); ND.audio.init(); ND.audio.startMusic(); ND.audio.sfx('start');
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     if (tut) ND.tutorial.begin(ci || 0);
-    player.resetAll(); ND.world.clear(); ND.world.update(player.s);
+    player.resetAll(); ND.world.clear(); ND.world.update(player.s); ND.pickups.clear(!tut, m === 'timed');
     if (tut) player.speedCap = ND.tutorial.cap();
     lastP = { x: player.x, y: player.y, s: player.s };
     timeLeft = 120; cd = tut ? 2.6 : 3; state = 'countdown'; show(null);
@@ -722,7 +776,7 @@ export function boot(): void {
   }
   function resume() { state = 'play'; show(null); last = performance.now(); }
   function refreshBests() { $('bestTimed').textContent = fmt(getBest('timed')); $('bestEndless').textContent = fmt(getBest('endless')); }
-  function toMenu() { leaveTutorial(); state = 'menu'; ND.audio.grind(false, 0); ND.audio.carve(0, false, 0); player.resetAll(); ND.world.clear(); ND.world.update(player.s); el.big.className = ''; show('menu'); refreshBests(); paintTutBtn();
+  function toMenu() { leaveTutorial(); state = 'menu'; ND.audio.grind(false, 0); ND.audio.carve(0, false, 0); player.resetAll(); ND.world.clear(); ND.world.update(player.s); ND.pickups.clear(false); el.big.className = ''; show('menu'); refreshBests(); paintTutBtn();
     if (tutGlow()) { const i = navUnits().findIndex((u) => u.el.id === 'btnTutorial'); if (i >= 0) { navIdx = i; navPaint(false); } }   // first time: the tutorial is the highlighted button
   }
 
@@ -1142,7 +1196,7 @@ export function boot(): void {
     }
     camera.up.set(-player.roll * 0.3, 1, 0).normalize();
     camera.lookAt(player.x + Math.sin(camHead) * 10 + camLook, player.y - 2.4 - CD_DOWN * camDown, -player.s - 14);
-    const bf = S.fov, fov = Math.min(bf + 30, bf + (Math.max(0, Math.min(20, (player.speed - 15) * 0.55)) + 6 * player.boostNow) * S.fx) + fovKick * S.fx;
+    const bf = S.fov, fov = Math.min(bf + 30, bf + (Math.max(0, Math.min(20, (player.speed - 15) * 0.55)) + 6 * player.boostNow + 9 * player.pw.overNow) * S.fx) + fovKick * S.fx;
     if (Math.abs(fov - camera.fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * (fovKick > 0.5 ? 12 : 3)); camera.updateProjectionMatrix(); }
     sky.position.copy(camera.position);
     sun.position.copy(camera.position).add(sunOff);
@@ -1178,13 +1232,17 @@ export function boot(): void {
     } else if (state === 'play') {
       let ts = 1;
       if (slowT > 0) { slowT -= dt; ts = slowT > 0.25 ? 0.2 : 0.2 + 0.8 * (1 - Math.max(0, slowT) / 0.25); }   // slow-mo beat after a failed combo
+      const pv = { x: player.x, y: player.y, s: player.s };
       player.update(dt * ts, einp);
       if (mode === 'tutorial') ND.tutorial.update(dt * ts, einp);
+      for (const g of ND.pickups.update(dt * ts, player, pv)) takePower(g);
       if (mode === 'timed') { timeLeft -= dt; if (timeLeft <= 0) { timeLeft = 0; finish(); } }
       ND.audio.carve(player.speed, player.state === 'ride', Math.max(Math.abs(player.hv) / 2, player.slide * 1.4));
     } else if (state === 'menu') {
       player.pose(dt, NOINP);
     }
+    if (state !== 'play') ND.pickups.update(state === 'countdown' ? dt : 0, player, player, false);
+    powerFx();
     const inMenu = state === 'menu';
     if (inMenu) { player.group.visible = false; player.trail.visible = false; }
     player.glow.visible = !inMenu;

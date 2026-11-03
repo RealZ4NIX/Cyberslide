@@ -388,3 +388,44 @@
   #padNote { position: fixed; left: 50%; bottom: 62px; transform: translate(-50%, 14px); z-index: 9; padding: 7px 18px 8px; font: 700 12px var(--body); letter-spacing: .22em; color: var(--cyan); text-transform: uppercase; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
     background: rgba(7,4,26,.9); border: 1px solid var(--cyan); box-shadow: 0 0 16px rgba(47,240,255,.4); clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
   #padNote.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---------- power-ups ---------- */
+  #pups { left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(108px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 6px; }
+  .pu { display: none; grid-template-columns: 30px auto; grid-template-rows: auto 5px; column-gap: 6px; align-items: center; padding: 4px 10px 5px 6px; min-width: 86px;
+    border-left: 3px solid var(--pc); background: linear-gradient(90deg, color-mix(in srgb, var(--pc) 22%, transparent), rgba(7,4,26,.72) 60%); clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 100%, 0 100%); }
+  .pu.on { display: grid; animation: puin .3s ease-out; }
+  .pu img { grid-row: 1 / 3; width: 30px; height: 30px; filter: drop-shadow(0 0 5px var(--pc)); }
+  .pu b { font-family: var(--display); font-style: italic; font-size: 13px; letter-spacing: .08em; color: var(--pc); text-shadow: 0 0 8px var(--pc); }
+  .pu span { position: absolute; right: 12px; top: 3px; font-family: var(--display); font-style: italic; font-size: 12px; color: #fff; }
+  .pu { position: relative; }
+  .pu i { display: block; height: 4px; width: 100%; background: var(--pc); box-shadow: 0 0 6px var(--pc); -webkit-mask: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 7px); mask: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 7px); }
+  .pu.low { animation: blink .3s steps(2) infinite; }
+  @keyframes puin { 0% { transform: translateX(-14px); filter: brightness(2.2); opacity: 0; } 100% { transform: none; filter: none; opacity: 1; } }
+  .toast.power { border-color: var(--pc); color: var(--pc); text-shadow: 0 0 10px var(--pc); }
+  .toast.power.sky { color: #fff; background: linear-gradient(270deg, color-mix(in srgb, var(--pc) 55%, transparent), color-mix(in srgb, var(--pc) 12%, transparent)); }
+  .toast.shield { border-color: #3bf0ff; color: #fff; background: linear-gradient(270deg, rgba(59,240,255,.45), rgba(59,240,255,.1)); }
+  #big.power { color: var(--pc); font-size: clamp(30px, 7vw, 68px); text-shadow: 4px 4px 0 var(--ink), 0 0 22px var(--pc); }
+  #big.shield { color: #3bf0ff; font-size: clamp(36px, 9vw, 84px); text-shadow: 4px 4px 0 var(--ink), 0 0 22px #3bf0ff; }
+  #combo.x2 { position: relative; border-left-color: #fff; box-shadow: inset 0 0 0 1px rgba(255,210,63,.35); }
+  #combo.x2::after { content: '2X'; position: absolute; right: 18px; top: -2px; font-family: var(--display); font-style: italic; font-size: 13px; color: var(--ink); background: var(--gold); padding: 0 6px; clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%); animation: blink .6s steps(2) infinite; }
+  #combo.x2 #hudPts { color: #fff; text-shadow: 0 0 14px var(--gold), 0 0 4px var(--gold); }
+  #pkflash { inset: 0; opacity: 0; background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--pc) 40%, transparent), transparent 55%); }
+  #pkflash.on { animation: flash .35s ease-out; }
+  #pkflash.on.sky { background: radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--pc) 60%, transparent), color-mix(in srgb, var(--pc) 18%, transparent) 45%, transparent 80%); animation: flash .6s ease-out; }
+  #gravfx { inset: 0; opacity: 0; transition: opacity .4s; background: radial-gradient(ellipse at center, rgba(176,124,255,0) 55%, rgba(176,124,255,.3) 100%); }
+  #gravfx.on { opacity: 1; animation: gravpulse 1.6s ease-in-out infinite alternate; }
+  @keyframes gravpulse { to { filter: brightness(1.4); } }
+  /* overclock: speed streaks at the edges, RGB glitch bars and a twitchy picture */
+  #glitch { inset: 0; opacity: 0; overflow: hidden; transition: opacity .15s; }
+  #glitch.on { opacity: 1; }
+  #glitch::before { content: ''; position: absolute; inset: -25%; background: repeating-conic-gradient(from 0deg at 50% 50%, transparent 0 4deg, rgba(255,120,160,.28) 4deg 4.5deg, transparent 4.5deg 7deg, rgba(120,240,255,.2) 7deg 7.4deg);
+    -webkit-mask: radial-gradient(circle at 50% 50%, transparent 32%, #000 62%); mask: radial-gradient(circle at 50% 50%, transparent 32%, #000 62%); animation: ocspin .18s steps(3) infinite; }
+  #glitch b { position: absolute; inset: 0; box-shadow: inset 0 0 90px rgba(255,59,107,.45), inset 6px 0 0 rgba(59,240,255,.35), inset -6px 0 0 rgba(255,59,107,.35); }
+  #glitch i { position: absolute; left: 0; right: 0; height: 3%; mix-blend-mode: screen; background: linear-gradient(90deg, rgba(59,240,255,.0), rgba(59,240,255,.35) 20%, rgba(255,59,107,.4) 60%, transparent); animation: ocbar .7s steps(1) infinite; }
+  #glitch i:nth-child(2) { height: 1.5%; animation-duration: .53s; animation-delay: -.2s; }
+  #glitch i:nth-child(3) { height: 6%; opacity: .6; animation-duration: .91s; animation-delay: -.4s; }
+  @keyframes ocspin { 0% { transform: rotate(0deg) scale(1); } 33% { transform: rotate(1.4deg) scale(1.03); } 66% { transform: rotate(-1deg) scale(.98); } }
+  @keyframes ocbar { 0% { top: 12%; transform: translateX(-4%); } 20% { top: 64%; transform: translateX(3%); } 40% { top: 31%; transform: none; } 60% { top: 82%; transform: translateX(-2%); } 80% { top: 47%; transform: translateX(5%); } }
+  canvas.oc { animation: ocjit .6s steps(1) infinite; }
+  @keyframes ocjit { 0%, 100% { transform: none; filter: saturate(1.3) contrast(1.06); } 12% { transform: translateX(3px); filter: saturate(1.3) contrast(1.06) hue-rotate(-12deg); } 16% { transform: translateX(-2px) skewX(-1deg); } 20% { transform: none; } 70% { transform: translateX(-3px); } 73% { transform: none; } }
+  @media (prefers-reduced-motion: reduce) { #glitch::before, #glitch i, canvas.oc, #gravfx.on, .pu.on, .pu.low, #combo.x2::after, #pkflash.on { animation: none; } }

@@ -378,7 +378,10 @@ export type SfxName =
   | 'tick'
   | 'fanfare'
   | 'warn'
-  | 'warn2';
+  | 'warn2'
+  | 'pickup'
+  | 'pickupSky'
+  | 'shield';
 
 export const audio = {
   init(): void {
@@ -596,6 +599,23 @@ export const audio = {
     } else if (name === 'warn2') {
       tone('square', 1319, t, 0.09, 0.12, sfxBus, 3500);
       tone('square', 659, t, 0.12, 0.08, sfxBus, 2500);
+    } else if (name === 'pickup') {
+      // quick rising chip blip
+      [880, 1319, 1760].forEach((f, i) =>
+        tone('square', f, t + i * 0.035, 0.09, 0.07, sfxBus, 4000),
+      );
+    } else if (name === 'pickupSky') {
+      // bigger: a rising arpeggio with a shimmer on top
+      [523, 784, 1047, 1568, 2093].forEach((f, i) => {
+        tone('square', f, t + i * 0.045, 0.2, 0.08, sfxBus, 3600);
+        tone('sine', f * 2, t + i * 0.045, 0.25, 0.04, sfxBus);
+      });
+      noise(t + 0.15, 0.4, 0.08, 6000, sfxBus);
+    } else if (name === 'shield') {
+      // the shield taking the hit: a glassy chime over the crash
+      [1568, 1175, 1568, 2093].forEach((f, i) =>
+        tone('triangle', f, t + 0.05 + i * 0.06, 0.35, 0.12, sfxBus),
+      );
     }
   },
 };

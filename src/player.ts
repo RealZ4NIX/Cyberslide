@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import { ND } from './nd';
+import { Powers, OVER_KICK } from './powerups';
 
 const G = 28, TAU = Math.PI * 2, CHAIN_TIME = 2.2, LAND_YAW = 0.62, LAND_FLIP = 0.7;
 const PERFECT_WIN = 0.3;   // seconds before touchdown in which Space gives a perfect landing
@@ -73,6 +74,7 @@ class Player {
     this.trail.frustumCulled = false; scene.add(this.trail);
     this.onEvent = null;
     this.best = { bestCombo: 0 };
+    this.pw = new Powers();   // power-ups running on the rider (powerups.ts)
     this.resetAll();
   }
 
@@ -105,6 +107,7 @@ class Player {
     this.special = 0; this.dirPrev = {}; this.heldDirs = []; this.chord = null; this.tokens = []; this.wasFlip = false; this.wasGrab = false;
     this.resetAir(); this.spaceLock = 0; this.holdLock = false; this.wallCool = 0; this.pipeCool = 0; this.readyT = 0; this.readyC = 0; this.perfStreak = 0;
     this.group.visible = true; this.trailPts.length = 0;
+    this.pw.reset();
   }
   resetAir() {
     this.yawRot = 0; this.flipRot = 0; this.yawVel = 0; this.flipVel = 0;
@@ -235,10 +238,11 @@ class Player {
     const c = this.combo;
     if (!sp && !nofill) this.fill(0.16);
     if (chain > 1) pts = Math.round(pts * (1 + 0.35 * (chain - 1)));   // chain bonus: each extra trick in one jump pays more
+    const pm = this.pw.scoreMult; pts = Math.round(pts * pm);           // score multiplier chip
     const n = mix ? mix.parts.length : 1;   // a mixed trick counts every part toward the combo multiplier
     c.pts += pts; c.entries += n; c.timer = CHAIN_TIME * this.k.chain; c.active = true;
     this.stats.tricks += n;
-    this.emit('trick', { name, pts, chain: chain || 0, input: def ? ND.trickInput(def) : '', parts: mix ? mix.parts : [name], mix: mix ? mix.x : 0 });
+    this.emit('trick', { name, pts, chain: chain || 0, input: def ? ND.trickInput(def) : '', parts: mix ? mix.parts : [name], mix: mix ? mix.x : 0, x2: pm > 1 });
   }
   bank() {
     const c = this.combo;
@@ -277,6 +281,17 @@ class Player {
     return parts.length > 0;
   }
 
+  /* a power-up was picked up (pickups.ts finds the touch, game.ts calls this) */
+  power(kind, sky) {
+    const g = this.pw.grant(kind, sky);
+    if (kind === 'over') {
+      this.speed += OVER_KICK[sky ? 1 : 0];
+      this.boostPow = Math.max(this.boostNow, 1); this.boostT = this.boostMax = Math.max(this.boostT, g.amount);
+    }
+    this.emit('power', g);
+    return g;
+  }
+
   jump(v) {
     // v is the pop speed relative to the hill, so add the hill's own vertical motion
     this.state = 'air'; this.vy = this.prevGv + v; this.resetAir(); this.megaAir = false; this.emit('jump');
@@ -284,13 +299,16 @@ class Player {
 
   crash(reason) {
     if (this.state === 'crash') return;
-    const lost = Math.round(this.combo.pts * this.mult());
-    this.combo.pts = 0; this.combo.entries = 0; this.combo.active = false; this.combo.timer = 0;
+    // combo shield: the bail still happens, but the combo survives it and you get the full window to carry it on
+    const shielded = this.combo.active && this.pw.absorb();
+    const lost = shielded ? 0 : Math.round(this.combo.pts * this.mult());
+    if (shielded) this.combo.timer = CHAIN_TIME * this.k.chain;
+    else { this.combo.pts = 0; this.combo.entries = 0; this.combo.active = false; this.combo.timer = 0; }
     this.stats.crashes++; this.boostT = 0; this.special = 0;
     this.state = 'crash'; this.crashT = 0; this.perfStreak = 0;
     this.tumble.vx = 6 + Math.random() * 4; this.tumble.vz = (Math.random() - 0.5) * 8;
     this.resetAir();
-    this.emit('crash', { reason, lost });
+    this.emit('crash', { reason, lost, shielded, saved: shielded ? Math.round(this.combo.pts * this.mult()) : 0 });
   }
 
   update(dt, inp) {
@@ -301,6 +319,7 @@ class Player {
     if (this.pipeCool > 0) this.pipeCool -= dt;
     if (this.readyT > 0) this.readyT -= dt;
     if (this.boostT > 0) this.boostT = Math.max(0, this.boostT - dt);
+    this.pw.tick(dt);
     this.trickInput(inp);
     const prevSpace = this.wasSpace;
     this.spacePressed = inp.space && !prevSpace;
@@ -371,8 +390,8 @@ class Player {
     if (Math.abs(wx) > 0.3 && !climbing) this.heading -= Math.sign(wx) * Math.min(3.2, 3.2 * (Math.abs(wx) - 0.2)) * dt;
     this.heading = Math.max(-1.25, Math.min(1.25, this.heading));
     const c = Math.cos(this.heading), sn = Math.abs(Math.sin(this.heading));
-    const bo = this.boostNow;
-    let a = (14 * this.gScale * this.k.gravity + 7 * bo) * c - 11 * sn - 0.012 * this.k.drag * (inp.up ? 0.62 : 1) * (1 - 0.2 * Math.min(1, bo)) * this.speed * this.speed;
+    const bo = this.boostNow, ov = this.pw.overNow;   // overclock: a hard push and much less drag while it runs
+    let a = (14 * this.gScale * this.k.gravity + 7 * bo + 18 * ov) * c - 11 * sn - 0.012 * this.k.drag * (inp.up ? 0.62 : 1) * (1 - 0.2 * Math.min(1, bo)) * (1 - 0.35 * ov) * this.speed * this.speed;
     a += 24 * ND.bowlDown(this.x, this.s) * c;   // landing slopes pull you down, then give it back
     if (inp.down) a -= 16;
     if (this.charge > 0.2) a -= 4;
@@ -410,7 +429,7 @@ class Player {
 
   air(dt, inp) {
     this.airT += dt;
-    this.vy -= G * dt; this.y += this.vy * dt;
+    this.vy -= G * this.pw.gravScale * dt; this.y += this.vy * dt;   // low-grav field: floatier, higher jumps
     this.x += Math.sin(this.heading) * this.speed * dt;
     this.s += Math.cos(this.heading) * this.speed * dt;
     this.wall();
@@ -457,8 +476,9 @@ class Player {
   predict() {
     const h = 0.03, sx = Math.sin(this.heading) * this.speed, ss = Math.cos(this.heading) * this.speed, cs = Math.cos(this.heading);
     let x = this.x, s = this.s, y = this.y, vy = this.vy, pgd = y - ND.H(x, s);
+    const g = G * this.pw.gravScale;
     for (let t = h; t < 2.4; t += h) {
-      vy -= G * h; y += vy * h; x += sx * h; s += ss * h;
+      vy -= g * h; y += vy * h; x += sx * h; s += ss * h;
       const rails = ND.railsNear(s);
       for (let i = 0; i < rails.length; i++) {
         const r = rails[i];
@@ -594,7 +614,7 @@ class Player {
       }
     }
     this.grindT += dt;
-    this.combo.pts += GRIND[n].rate * 2 * [1, 1.5, 2.2, 3][this.rail.tier] * this.k.grindPts * dt; this.combo.timer = CHAIN_TIME * this.k.chain; this.combo.active = true;
+    this.combo.pts += GRIND[n].rate * 2 * [1, 1.5, 2.2, 3][this.rail.tier] * this.k.grindPts * this.pw.scoreMult * dt; this.combo.timer = CHAIN_TIME * this.k.chain; this.combo.active = true;
     this.speed = Math.min(GRIND_MAXV, this.speed + (3.5 + 0.8 * this.rail.tier) * this.k.grindKick * dt);   // rails speed you up
     const px = this.x;
     this.s += this.speed * dt;

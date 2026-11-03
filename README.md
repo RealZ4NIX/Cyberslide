@@ -24,6 +24,17 @@ Arrows steer, hold and release Space to jump (press Space just before touchdown 
 In the air: tap arrows, then the flip (A/L) or grab (D/K) button for a trick. R restart, P pause, M mute.
 All keys can be rebound in the settings; controllers work too.
 
+## Power-ups
+
+Spinning holograms on the track and in the sky. Track ones are common, sky ones float above kickers, big ramps and
+quarterpipes and are stronger.
+
+- **Overclock** (red bolt): short hard speed boost with a glitch effect
+- **Score x2** (gold chip): double points for a few seconds
+- **Combo shield** (cyan shield): your next bail doesn't wipe the combo
+- **Low-grav** (purple planet): floatier, higher jumps
+- **Time chip** (green stopwatch, 2-minute mode only): adds seconds to the clock
+
 ## Layout
 
 See [docs/structure.md](docs/structure.md) for what each module does and how they fit together.
