@@ -381,7 +381,9 @@ export type SfxName =
   | 'warn2'
   | 'pickup'
   | 'pickupSky'
-  | 'shield';
+  | 'shield'
+  | 'count'
+  | 'go';
 
 export const audio = {
   init(): void {
@@ -611,6 +613,35 @@ export const audio = {
         tone('sine', f * 2, t + i * 0.045, 0.25, 0.04, sfxBus);
       });
       noise(t + 0.15, 0.4, 0.08, 6000, sfxBus);
+    } else if (name === 'count') {
+      // countdown beat: a sub kick, a snare crack and a hard square stab
+      const o = ctx.createOscillator(),
+        g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(150, t);
+      o.frequency.exponentialRampToValueAtTime(42, t + 0.25);
+      o.connect(g);
+      g.connect(sfxBus);
+      env(g, t, 0.005, 0.32, 0.6);
+      o.start(t);
+      o.stop(t + 0.4);
+      noise(t, 0.16, 0.35, 1800, sfxBus);
+      tone('square', 440, t, 0.14, 0.12, sfxBus, 2600);
+      tone('square', 880, t + 0.01, 0.1, 0.06, sfxBus, 3200);
+    } else if (name === 'go') {
+      // DROP!: a bigger kick, a rising sweep and a bright chord
+      const o = ctx.createOscillator(),
+        g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(180, t);
+      o.frequency.exponentialRampToValueAtTime(38, t + 0.4);
+      o.connect(g);
+      g.connect(sfxBus);
+      env(g, t, 0.005, 0.5, 0.75);
+      o.start(t);
+      o.stop(t + 0.6);
+      noise(t, 0.6, 0.35, 4000, sfxBus);
+      [523, 659, 784, 1047].forEach((f) => tone('sawtooth', f, t, 0.5, 0.07, sfxBus, 3600));
     } else if (name === 'shield') {
       // the shield taking the hit: a glassy chime over the crash
       [1568, 1175, 1568, 2093].forEach((f, i) =>

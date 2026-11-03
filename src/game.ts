@@ -375,6 +375,24 @@ export function boot(): void {
     else { el.time.textContent = '∞'; el.time.className = ''; }
   }
 
+  /* ---------- start countdown: every number slams onto the screen with a hit, then DROP! ---------- */
+  const cdEl = $('cdNum'); let cdN = -1;
+  function cdBeat(n) {
+    cdN = n;
+    if (n > 0) {
+      cdEl.textContent = String(n); cdEl.className = ''; void cdEl.offsetWidth; cdEl.className = 'hit n' + Math.min(3, n);
+      el.big.className = '';
+      shake = Math.max(shake, 0.55 + 0.15 * (3 - Math.min(3, n))); fovKick = Math.max(fovKick, 5 + 2 * (3 - Math.min(3, n)));
+      ND.audio.sfx('count');
+    } else {
+      cdEl.className = '';
+      big('DROP!', 'go'); el.big.className = ''; void el.big.offsetWidth; el.big.className = 'show go';
+      shake = Math.max(shake, 1.1); fovKick = Math.max(fovKick, 16);
+      el.flash.className = ''; void el.flash.offsetWidth; if (S.fx > 0) el.flash.className = 'on';
+      ND.audio.sfx('go');
+    }
+  }
+
   /* ---------- last 10 seconds of a 2 min run: big 10, 9, 8 ... countdown with a tick each second ---------- */
   const endEl = $('endCount'); let endN = 0;
   function endCount() {
@@ -523,7 +541,7 @@ export function boot(): void {
   function shieldFlash() { pkFlash(PW.shield.css, true); }
   // chips with a draining bar for each running power: the timed boosts bottom left, the shield bottom right
   const chips = {};
-  for (const k of ['over', 'x2', 'grav', 'shield']) {
+  for (const k of ['x2', 'grav', 'shield']) {   // overclock is too short for a chip: its pop-up stays at the top instead
     const c = document.createElement('div'); c.className = 'pu' + (k === 'x2' || k === 'shield' ? ' big' : ''); c.style.setProperty('--pc', PW[k].css);
     const img = document.createElement('img'); img.alt = ''; img.src = ND.pickups.iconURL ? ND.pickups.iconURL(k) : '';
     const b = document.createElement('b'); b.textContent = k === 'x2' ? '2X' : k === 'over' ? 'OVR' : k === 'grav' ? 'GRAV' : 'SHLD';
@@ -536,12 +554,16 @@ export function boot(): void {
   const pop = { el: $('pupPop'), box: $('pupBox'), img: $('pupImg'), name: $('pupName'), tag: $('pupTag'), bar: $('pupBar'), kind: null, t: 0, phase: '' };
   function popLand() {
     if (!pop.kind) return;
+    const was = pop.kind;
     const ch = chips[pop.kind];
     if (ch && ch.ghost) { ch.ghost = false; ch.c.classList.remove('ghost'); }
     if (pop.kind === 'time') { const tm = el.time; tm.classList.remove('tadd'); void tm.offsetWidth; tm.classList.add('tadd'); }
     pop.kind = null; pop.phase = ''; pop.el.className = ''; pop.box.style.transform = ''; pop.box.style.opacity = '';
+    // another pickup cut the overclock pop-up short: bring it back (quietly) for the rest of the boost
+    if (was !== 'over' && player.pw.over > 0.15 && (state === 'play' || state === 'pause')) popShow('over', false, '', true);
   }
-  function popShow(kind, sky, extra) {
+  function popShow(kind, sky, extra, quiet) {
+    if (pop.kind === 'over' && kind !== 'over') { pop.kind = null; pop.el.className = ''; }   // the boost indicator steps aside
     popLand();                                          // a new pickup sends the previous pop-up straight to its chip
     const def = PW[kind];
     pop.kind = kind; pop.t = 0; pop.phase = 'in';
@@ -550,13 +572,19 @@ export function boot(): void {
     pop.tag.textContent = sky ? 'SKY' : '';
     pop.box.classList.toggle('sky', !!sky); pop.box.classList.toggle('nobar', kind === 'time');
     pop.box.style.transform = ''; pop.box.style.opacity = '';
-    pop.el.className = ''; void pop.el.offsetWidth; pop.el.className = 'show';
+    pop.el.className = ''; void pop.el.offsetWidth; pop.el.className = quiet ? 'show quiet' : 'show';
     const ch = chips[kind];
     if (ch) { ch.ghost = true; ch.c.classList.add('ghost'); }   // the chip holds its place, invisible, until the pop-up lands in it
   }
   function popStep(dt) {
     if (!pop.kind) return;
     pop.t += dt;
+    if (pop.kind === 'over') {
+      // overclock: stays up top with its draining bar for the whole boost, then fades
+      if (pop.phase === 'in' && player.pw.over <= 0) { pop.phase = 'out'; pop.t = 0; pop.el.className = 'show out'; }
+      else if (pop.phase === 'out' && pop.t >= 0.25) popLand();
+      return;
+    }
     if (pop.phase === 'in' && pop.t >= POP_T) {
       const target = pop.kind === 'time' ? el.time : chips[pop.kind] && chips[pop.kind].c;
       if (!target) { popLand(); return; }
@@ -783,7 +811,7 @@ export function boot(): void {
     player.resetAll(); ND.world.clear(); ND.world.update(player.s); ND.pickups.clear(!tut, m === 'timed');
     if (tut) player.speedCap = ND.tutorial.cap();
     lastP = { x: player.x, y: player.y, s: player.s };
-    timeLeft = 120; cd = tut ? 2.6 : 3; state = 'countdown'; show(null);
+    timeLeft = 120; cd = tut ? 2.6 : 3; state = 'countdown'; show(null); cdN = -1; el.big.className = '';
     el.timeLbl.textContent = m === 'timed' ? 'TIME' : 'ENDLESS';
     el.feed.innerHTML = ''; lastScore = -1; dispScore = 0; failT = 0; slowT = 0; el.fail.className = ''; $('rflash').className = ''; camHead = 0; camLook = 0; camDown = 1; camY = player.y + 3.3 + CD_UP;
     snapCamera();
@@ -1262,8 +1290,8 @@ export function boot(): void {
     if (state === 'countdown') {
       const before = Math.ceil(cd); cd -= dt;
       player.pose(dt, NOINP);
-      if (cd <= 0) { state = 'play'; big('DROP!', 'go'); }
-      else { const n = Math.ceil(cd); el.big.textContent = String(n); el.big.className = 'show'; if (n !== before) ND.audio.sfx('ui'); }
+      if (cd <= 0) { state = 'play'; cdBeat(0); }
+      else { const n = Math.ceil(cd); if (n !== cdN) cdBeat(n); }
     } else if (state === 'play') {
       let ts = 1;
       if (slowT > 0) { slowT -= dt; ts = slowT > 0.25 ? 0.2 : 0.2 + 0.8 * (1 - Math.max(0, slowT) / 0.25); }   // slow-mo beat after a failed combo
