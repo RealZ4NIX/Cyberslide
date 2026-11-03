@@ -7,6 +7,7 @@ import { ND } from './nd';
 
 const G = 28, TAU = Math.PI * 2, CHAIN_TIME = 2.2, LAND_YAW = 0.62, LAND_FLIP = 0.7;
 const PERFECT_WIN = 0.3;   // seconds before touchdown in which Space gives a perfect landing
+const SKY_EXTRA = 11;      // a perfect landing on a side quarterpipe throws you this much faster than a normal pipe launch
 const LOCK_EARLY = 0.45;   // pressing Space too early locks it out for this long
 const BUF_T = 0.55;        // arrows tapped this recently count toward a trick
 const CHORD_T = 0.075;     // two arrows pressed this close together make a diagonal
@@ -524,6 +525,20 @@ class Player {
       this.speed += 2 + 4 * pw;
       this.emit('boost', { pow: pw, perfect: armed, clean: perfect });
     }
+    // perfect landing on a side quarterpipe: the wall throws you straight back up, higher than the launch off the lip
+    if (armed) {
+      const pw = ND.megaAt(this.x, this.s);
+      if (pw && pw.side && ND.wallSum(this.x, this.s) > 0.5) this.skyLaunch(pw);
+    }
+  }
+
+  skyLaunch(pw) {
+    const hillV = (ND.base(this.x, this.s + 1) - ND.base(this.x, this.s)) * this.speed * Math.cos(this.heading);
+    this.charge = 0; this.readyT = 0; this.holdLock = true;
+    this.vy = hillV + pw.cap + 14 + SKY_EXTRA; this.y += this.vy / 60;
+    this.state = 'air'; this.resetAir(); this.megaAir = true;   // still mega air: specials keep paying double
+    this.heading = pw.side * 0.03; this.hv = 0; this.pipeAir = pw.side; this.pipeCool = 0;   // you come back down onto the same wall
+    this.emit('launch'); this.emit('sky', { x: this.x, y: this.y, s: this.s });
   }
 
   startGrind(rail) {

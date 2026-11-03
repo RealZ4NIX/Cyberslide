@@ -215,6 +215,7 @@ export function boot(): void {
     else if (n === 'crash') r(1, 0.7, 420);
     else if (n === 'wall') r(0.35, 0.5, 90);
     else if (n === 'mega') r(0.9, 0.5, 260);
+    else if (n === 'sky') r(1, 0.7, 340);
     else if (n === 'launch') r(0.5, 0.3, 140);
     else if (n === 'boost') r(0, 0.45, 150);
     else if (n === 'grindStart') r(0.3, 0.2, 90);
@@ -485,6 +486,7 @@ export function boot(): void {
     else if (n === 'specialReady') { toast('SPECIAL READY', 'special'); ND.audio.sfx('ready'); }
     else if (n === 'early') { toast('TOO EARLY', 'info'); ND.audio.sfx('early'); }
     else if (n === 'wall') { shake = Math.max(shake, 0.25); ND.audio.sfx('scrape'); }
+    else if (n === 'sky') { toast('SKY LAUNCH  specials pay x2', 'special'); fovKick = Math.max(fovKick, 13); shake = Math.max(shake, 0.4); ND.audio.sfx('ready'); }
     else if (n === 'mega') { toast('MEGA AIR  specials pay x2', 'special'); fovKick = Math.max(fovKick, 9); shake = Math.max(shake, 0.3); ND.audio.sfx('ready'); }
     else if (n === 'boost' && d.rail) { fovKick = Math.max(fovKick, d.rail === 'off' ? 6 : 3); if (d.rail === 'off') toast(d.pow > 1.0 ? 'MEGA RAIL BOOST' : 'RAIL BOOST', 'boost'); ND.audio.sfx('boost'); }
     else if (n === 'boost') { toast((d.clean && !d.perfect ? 'CLEAN LANDING  ' : '') + (d.pow > 1.0 ? 'MEGA BOOST' : d.pow > 0.6 ? 'SUPER BOOST' : 'BOOST'), 'boost'); ND.audio.sfx('boost'); }

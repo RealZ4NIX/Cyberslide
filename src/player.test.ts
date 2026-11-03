@@ -145,3 +145,50 @@ describe('riders', () => {
     expect(dist('volt')).toBeGreaterThan(dist('chrome'));
   });
 });
+
+describe('side quarterpipe', () => {
+  /** put the rider just above a side quarterpipe wall, falling, as if coming back down out of a pipe launch */
+  function onWall(armed: boolean) {
+    setCoursePlan(() => 'pipe');
+    const { p, events, names } = mkPlayer();
+    const w = ND.seg(1).walls[0];
+    const s = w.s + 60,
+      x = C(s) + w.side * (w.toe + 0.6 * (w.lip - w.toe));
+    Object.assign(p, {
+      x,
+      s,
+      y: H(x, s),
+      state: 'air',
+      vy: -20,
+      speed: 28,
+      heading: 0,
+      airT: 2,
+      peakAir: 15,
+      perfectArm: armed,
+      pipeAir: w.side,
+    });
+    p.land(H(x, s));
+    return { p, events, names, w };
+  }
+
+  it('a perfect landing on the wall launches you back up, higher than off the lip', () => {
+    const { p, names, w } = onWall(true);
+    expect(names()).toContain('perfect');
+    expect(names()).toContain('sky');
+    expect(p.state).toBe('air');
+    expect(p.megaAir).toBe(true);
+    expect(p.pipeAir).toBe(w.side);
+    let peak = 0;
+    for (let f = 0; f < 600 && p.state === 'air'; f++) {
+      p.update(DT, idle());
+      peak = Math.max(peak, p.peakAir);
+    }
+    expect(peak).toBeGreaterThan(30); // a normal pipe launch tops out around 24 m
+  });
+
+  it('a normal landing on the wall just rolls back down', () => {
+    const { p, names } = onWall(false);
+    expect(names()).not.toContain('sky');
+    expect(p.state).toBe('ride');
+  });
+});
