@@ -460,9 +460,13 @@
 
   /* x2 and shield chips are the ones you play around: big enough to read out of the corner of your eye */
   #pups { align-items: flex-end; }
-  .pu.big { grid-template-columns: clamp(84px, 11vw, 150px) auto; grid-template-rows: auto 10px; column-gap: 12px; padding: 8px 22px 10px 10px; min-width: 0; }
-  #pupsR .pu.big { grid-template-columns: clamp(84px, 11vw, 150px) auto; padding: 8px 12px 10px 22px; min-width: 0; }
-  .pu.big img, #pupsR .pu.big img { width: clamp(84px, 11vw, 150px); height: clamp(84px, 11vw, 150px); filter: drop-shadow(0 0 12px var(--pc)); }
-  .pu.big b { font-size: clamp(22px, 3.4vw, 40px); align-self: end; }
-  .pu.big i { height: 10px; align-self: start; min-width: clamp(70px, 9vw, 130px); }
-  .pu.big span { font-size: clamp(16px, 2.2vw, 26px); top: 6px; right: 18px; }
+  .pu.big { grid-template-columns: clamp(60px, 7vw, 90px) auto; grid-template-rows: auto 8px; column-gap: 10px; padding: 4px 14px 6px 6px; min-width: 0; }
+  #pupsR .pu.big { grid-template-columns: clamp(60px, 7vw, 90px) auto; padding: 4px 6px 6px 14px; min-width: 0; }
+  .pu.big img, #pupsR .pu.big img { width: clamp(60px, 7vw, 90px); height: clamp(60px, 7vw, 90px); filter: drop-shadow(0 0 10px var(--pc)); }
+  .pu.big b { font-size: clamp(18px, 2.4vw, 26px); align-self: end; }
+  .pu.big i { height: 7px; align-self: start; min-width: clamp(56px, 6vw, 84px); }
+  .pu.big span { font-size: clamp(14px, 1.6vw, 18px); top: 4px; right: 10px; }
+  /* chips float with no panel behind them: just the glowing icon, label and bar */
+  .pu, #pupsR .pu { background: none; border: 0; clip-path: none; }
+  .pu b, .pu span { text-shadow: 0 0 8px var(--pc), 1px 1px 0 var(--ink), 0 0 4px #000; }
+  .pu i { box-shadow: 0 0 6px var(--pc), 0 0 2px #000; }

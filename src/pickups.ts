@@ -157,8 +157,8 @@ const ICON: Record<PowerKind, (sky: boolean) => Draw> = {
 };
 
 const canvases = new Map<string, HTMLCanvasElement>();
-function iconCanvas(kind: PowerKind, sky: boolean): HTMLCanvasElement {
-  const key = kind + (sky ? ':sky' : '');
+function iconCanvas(kind: PowerKind, sky: boolean, disc = true): HTMLCanvasElement {
+  const key = kind + (sky ? ':sky' : '') + (disc ? '' : ':hud');
   let c = canvases.get(key);
   if (c) return c;
   c = document.createElement('canvas');
@@ -167,13 +167,16 @@ function iconCanvas(kind: PowerKind, sky: boolean): HTMLCanvasElement {
   const col = POWER[kind].css;
   g.lineJoin = 'round';
   g.lineCap = 'round';
-  // dark glass disc behind the icon: the colours have to read against bright snow as well as the night sky
-  const bg = g.createRadialGradient(64, 64, 20, 64, 64, 62);
-  bg.addColorStop(0, 'rgba(7,4,26,0.78)');
-  bg.addColorStop(0.72, 'rgba(7,4,26,0.62)');
-  bg.addColorStop(1, 'rgba(7,4,26,0)');
-  g.fillStyle = bg;
-  g.fillRect(0, 0, 128, 128);
+  // dark glass disc behind the icon: in the world the colours have to read against bright snow as well as the
+  // night sky (the HUD copy goes without it)
+  if (disc) {
+    const bg = g.createRadialGradient(64, 64, 20, 64, 64, 62);
+    bg.addColorStop(0, 'rgba(7,4,26,0.78)');
+    bg.addColorStop(0.72, 'rgba(7,4,26,0.62)');
+    bg.addColorStop(1, 'rgba(7,4,26,0)');
+    g.fillStyle = bg;
+    g.fillRect(0, 0, 128, 128);
+  }
   // glow pass, the coloured tube, then a thin white-hot core like a neon sign
   for (const pass of [0, 1, 2]) {
     g.save();
@@ -193,9 +196,9 @@ function iconCanvas(kind: PowerKind, sky: boolean): HTMLCanvasElement {
   canvases.set(key, c);
   return c;
 }
-/** the icon as an image URL, for the HUD */
+/** the icon as an image URL, for the HUD (no dark disc behind it) */
 export function iconURL(kind: PowerKind, sky = false): string {
-  const c = iconCanvas(kind, sky) as HTMLCanvasElement & { toDataURL?: () => string };
+  const c = iconCanvas(kind, sky, false) as HTMLCanvasElement & { toDataURL?: () => string };
   return typeof c.toDataURL === 'function' ? c.toDataURL() || '' : '';
 }
 
