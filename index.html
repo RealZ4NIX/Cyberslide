@@ -392,6 +392,9 @@
   @keyframes starin { from { transform: scale(2.2) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
   body.tutmode #hudTimeLbl, body.tutmode #hudTime { display: none; }
   @media (prefers-reduced-motion: reduce) { .btn.tut.glow, #tut.done, #tut.step .tt-scan, #tut.step .tt-title, #tutCard.show b, #tutCard.show::before, #tutCard.show::after, #tutOk.show, .td-stars span, .tt-live { animation: none; } #tutOk.show { opacity: 1; } }
+  #padNote { position: fixed; left: 50%; bottom: 62px; transform: translate(-50%, 14px); z-index: 9; padding: 7px 18px 8px; font: 700 12px var(--body); letter-spacing: .22em; color: var(--cyan); text-transform: uppercase; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+    background: rgba(7,4,26,.9); border: 1px solid var(--cyan); box-shadow: 0 0 16px rgba(47,240,255,.4); clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+  #padNote.show { opacity: 1; transform: translate(-50%, 0); }
 </style>
 
 <div id="game">
@@ -419,7 +422,7 @@
       <div class="tt-text" id="tutText"></div>
       <div class="tt-pips" id="tutPips"></div>
       <div class="tt-bar"><i id="tutBar"></i></div>
-      <div class="tt-foot"><span><kbd>Enter</kbd>skip step</span><span><kbd>Esc</kbd>pause</span></div>
+      <div class="tt-foot"><span data-kbonly><kbd>Enter</kbd>skip step</span><span><kbd data-padk="pause" data-kbt="Esc">Esc</kbd>pause</span></div>
     </div>
     <div id="tutCard"><small id="tcSmall">CHAPTER 01</small><b id="tcName">THE BASICS</b><span id="tcSub"></span></div>
     <div id="tutOk"></div>
@@ -431,6 +434,7 @@
   </div>
   <div id="crt" hidden></div>
   <div id="fps" hidden>0 FPS</div>
+  <div id="padNote" role="status" aria-live="polite"></div>
 
   <div class="ov" id="menu">
     <div class="panel gut">
@@ -454,7 +458,7 @@
         <div>Land on your feet for a <b>speed boost</b>. Land wrong and you <b>lose your combo</b>.</div>
         <div>Tap <kbd data-k="space">Space</kbd> just before touchdown, when the ring goes gold: a <b>perfect landing</b> that fixes any rotation.</div>
         <div><b>Follow the bends</b>, the walls slow you down. Mint slopes are made for landing big jumps.</div>
-        <div><kbd>Esc</kbd> <b>Pause</b> &nbsp;<kbd data-k="restart">R</kbd> <b>Restart</b> &nbsp;<kbd data-k="mute">M</kbd> <b>Mute</b></div>
+        <div><kbd data-padk="pause" data-kbt="Esc">Esc</kbd> <b>Pause</b> &nbsp;<kbd data-k="restart">R</kbd> <b>Restart</b> &nbsp;<kbd data-k="mute">M</kbd> <b>Mute</b></div>
       </div>
       <div class="hint">Stop tricking for 2 s to bank your combo. Higher jumps and bigger combos give a bigger boost. Chain tricks to fill the special meter.</div>
       <div class="hint" id="phone-note">This game needs a keyboard. Open it on a computer to play.</div>
@@ -3079,7 +3083,7 @@
     }
 
     ride(dt, inp) {
-      const steer = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
+      const steer = inp.ax ? inp.ax : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);   // a stick gives a value between -1 and 1, keys give -1, 0 or 1
       if (!inp.space) this.holdLock = false;
       if (inp.space && !this.holdLock) {
         if (this.charge === 0 && this.readyT > 0) this.charge = this.readyC;   // a perfect landing leaves you already crouched
@@ -3150,7 +3154,7 @@
         if (inp.left) yawT = 1; else if (inp.right) yawT = -1;
         if (inp.up) flipT = -1; else if (inp.down) flipT = 1;
       } else {
-        const st = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
+        const st = inp.ax ? inp.ax : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
         this.heading = Math.max(-1.25, Math.min(1.25, this.heading + st * 0.5 * dt));
         // out of a side quarterpipe the wall keeps you from drifting far: you always come back down onto the curve
         if (this.pipeAir) this.heading = this.pipeAir * Math.max(-0.07, Math.min(0.07, this.heading * this.pipeAir));
@@ -3705,6 +3709,89 @@
   };
 })();
 </script>
+<script>/* CYBERSLIDE - gamepad: reads the controller through the Gamepad API (standard mapping: DualSense, DualShock, Xbox and friends).
+   This file only knows about the device: sticks with a dead-zone, buttons with edge detection, names for the button glyphs and rumble.
+   main.js decides what the buttons do. */
+(function () {
+  'use strict';
+  const ND = (window.ND = window.ND || {});
+  const NB = 20;
+  const NAMES = {
+    ps: ['✕', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'CREATE', 'OPTIONS', 'L3', 'R3', '↑', '↓', '←', '→', 'PS', 'TOUCHPAD'],
+    xbox: ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'VIEW', 'MENU', 'LS', 'RS', '↑', '↓', '←', '→', 'HOME', 'SHARE']
+  };
+  const kindOf = (id) => /054c|dualsense|dualshock|wireless controller|playstation|sony/i.test(id || '') ? 'ps' : /xbox|xinput|045e|microsoft/i.test(id || '') ? 'xbox' : 'other';
+  const labelOf = (id, kind) => /dualsense/i.test(id || '') || /0ce6|0df2/i.test(id || '') ? 'DUALSENSE' : kind === 'ps' ? 'PLAYSTATION CONTROLLER' : kind === 'xbox' ? 'XBOX CONTROLLER' : 'CONTROLLER';
+
+  const st = {
+    lx: 0, ly: 0, ax: 0,                                  // left stick after the dead-zone (-1..1), and the steering value: D-pad wins over the stick
+    left: false, right: false, up: false, down: false,    // stick or D-pad as arrow keys
+    btn: new Array(NB).fill(false), hit: new Array(NB).fill(false), rel: new Array(NB).fill(false),
+    firstHit: -1, strong: false                           // first button pressed this frame (-1 none); "someone is really using the pad"
+  };
+  let cur = -1, last = null, sl = false, sr = false, su = false, sd = false;
+
+  function pick() {
+    let list = [];
+    try { list = navigator.getGamepads ? navigator.getGamepads() : []; } catch (e) { list = []; }
+    let best = null;
+    for (let i = 0; i < list.length; i++) {
+      const g = list[i]; if (!g || g.connected === false) continue;
+      if (g.index === cur) return g;
+      if (!best || (g.mapping === 'standard' && best.mapping !== 'standard')) best = g;
+    }
+    return best;
+  }
+
+  ND.pad = {
+    st, connected: false, id: '', kind: 'ps', label: 'CONTROLLER', enabled: true,
+    name(i) { return i == null ? '—' : (NAMES[this.kind === 'xbox' ? 'xbox' : 'ps'][i] || 'BTN ' + i); },
+    /* read the pad once per frame; dz is the stick dead-zone (0..0.5). Returns whether a pad is connected. */
+    poll(dz) {
+      const g = pick();
+      if (!g) {
+        if (this.connected) { this.connected = false; cur = -1; last = null; }
+        st.lx = st.ly = st.ax = 0; st.left = st.right = st.up = st.down = false; st.strong = false; st.firstHit = -1;
+        for (let i = 0; i < NB; i++) st.btn[i] = st.hit[i] = st.rel[i] = false;
+        return false;
+      }
+      const fresh = !this.connected || g.index !== cur;   // the press that wakes a pad up must not also act
+      cur = g.index; last = g;
+      if (fresh) { this.id = g.id; this.kind = kindOf(g.id); this.label = labelOf(g.id, this.kind); }
+      this.connected = true;
+      st.firstHit = -1; let any = false;
+      for (let i = 0; i < NB; i++) {
+        const b = g.buttons[i], v = b ? (b.value || 0) : 0;
+        const on = !!b && (i === 6 || i === 7 ? (b.pressed || v > (st.btn[i] ? 0.2 : 0.35)) : (b.pressed || v > 0.5));
+        st.hit[i] = on && !st.btn[i] && !fresh; st.rel[i] = !on && st.btn[i];
+        if (st.hit[i]) { any = true; if (st.firstHit < 0) st.firstHit = i; }
+        st.btn[i] = on;
+      }
+      // left stick: radial dead-zone, then rescaled so a 95% push is a full push
+      let x = g.axes[0] || 0, y = g.axes[1] || 0;
+      const m = Math.hypot(x, y);
+      if (m <= dz) { x = 0; y = 0; }
+      else { const t = Math.min(1, (m - dz) / Math.max(0.05, 0.95 - dz)), k = t / m; x *= k; y *= k; }
+      st.lx = x; st.ly = y;
+      sl = sl ? x < -0.4 : x < -0.55; sr = sr ? x > 0.4 : x > 0.55; su = su ? y < -0.4 : y < -0.55; sd = sd ? y > 0.4 : y > 0.55;
+      const dl = st.btn[14], dr = st.btn[15], du = st.btn[12], dd = st.btn[13];
+      st.left = dl || sl; st.right = dr || sr; st.up = du || su; st.down = dd || sd;
+      st.ax = dl !== dr ? (dr ? 1 : -1) : x;
+      st.strong = any || Math.abs(x) > 0.7 || Math.abs(y) > 0.7;
+      return true;
+    },
+    /* haptics: strong = low rumble motor, weak = high one, ms = length */
+    rumble(strong, weak, ms) {
+      if (!this.enabled || !last) return;
+      try {
+        const a = last.vibrationActuator;
+        if (a && a.playEffect) { const p = a.playEffect('dual-rumble', { startDelay: 0, duration: ms, weakMagnitude: Math.min(1, weak), strongMagnitude: Math.min(1, strong) }); if (p && p.catch) p.catch(() => {}); }
+        else if (last.hapticActuators && last.hapticActuators[0] && last.hapticActuators[0].pulse) last.hapticActuators[0].pulse(Math.min(1, Math.max(strong, weak)), ms);
+      } catch (e) { /* no haptics here */ }
+    }
+  };
+})();
+</script>
 <script>/* CYBERSLIDE - main: renderer, camera, input, HUD, modes */
 (function () {
   'use strict';
@@ -3719,7 +3806,10 @@
     left: ['ArrowLeft', null], right: ['ArrowRight', null], up: ['ArrowUp', null], down: ['ArrowDown', null], space: ['Space', null],
     trick: ['KeyS', 'KeyJ'], grab: ['KeyD', 'KeyK'], flip: ['KeyA', 'KeyL'], restart: ['KeyR', null], mute: ['KeyM', null], pause: ['KeyP', null]
   };
-  const DEF = { music: 100, sfx: 100, mute: false, chips: true, res: 300, fx: 1, fov: 62, crt: false, fps: false };
+  const DEF = { music: 100, sfx: 100, mute: false, chips: true, res: 300, fx: 1, fov: 62, crt: false, fps: false, padDead: 15, rumble: true };
+  // controller buttons (standard mapping indexes: 0 cross, 1 circle, 2 square, 3 triangle, 4 L1, 5 R1, 6 L2, 7 R2, 8 create, 9 options, 10 L3, 11 R3, 17 touchpad)
+  const DEF_PAD = { space: [0, null], trick: [6, 7], grab: [1, null], flip: [2, null], restart: [8, null], pause: [9, null], mute: [17, null] };
+  const PAD_RESERVED = [12, 13, 14, 15, 16];   // D-pad (steering and menus) and the PS button
   const RESERVED = /^(Escape|Tab|Enter|NumpadEnter|Digit1|Digit2|Meta.*|Alt.*|Control.*|F\d+|ContextMenu|NumLock|PrintScreen|ScrollLock|Pause)$/;
   const KEY_NAMES = { ArrowLeft: '\u2190', ArrowRight: '\u2192', ArrowUp: '\u2191', ArrowDown: '\u2193', Space: 'SPACE', ShiftLeft: 'L-SHIFT', ShiftRight: 'R-SHIFT',
     Backquote: '`', Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Backslash: '\\', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/',
@@ -3733,10 +3823,16 @@
     if (![240, 300, 450, 720].includes(s.res)) s.res = 300;
     if (![0, 0.5, 1].includes(s.fx)) s.fx = 1;
     s.fov = Math.max(50, Math.min(90, s.fov));
+    s.padDead = Math.max(5, Math.min(40, Math.round(s.padDead)));
     s.keys = {};
     for (const a in DEF_KEYS) {
       const n = DEF_KEYS[a].length, src = o.keys && Array.isArray(o.keys[a]) ? o.keys[a] : DEF_KEYS[a];
       s.keys[a] = []; for (let i = 0; i < n; i++) s.keys[a].push(typeof src[i] === 'string' && !RESERVED.test(src[i]) ? src[i] : null);
+    }
+    s.pad = {};
+    for (const a in DEF_PAD) {
+      const src = o.pad && Array.isArray(o.pad[a]) ? o.pad[a] : DEF_PAD[a];
+      s.pad[a] = [0, 1].map((i) => (Number.isInteger(src[i]) && src[i] >= 0 && src[i] < 20 && !PAD_RESERVED.includes(src[i]) ? src[i] : null));
     }
     s.labels = {};   // what the key says on this keyboard layout, learned from key presses
     return s;
@@ -3758,9 +3854,11 @@
     return c;
   }
   const primary = (a) => S.keys[a].find((c) => c) || null;
-  ND.btnLabel = (b) => { const c = primary(b === 'A' ? 'flip' : 'grab'); return c ? keyName(c) : b; };   // tricks.js uses it for the combo chips
+  ND.btnLabel = (b) => { const a = b === 'A' ? 'flip' : 'grab', n = actName(a); return n === '\u2014' ? b : n; };   // tricks.js uses it for the combo chips
   function refreshKeyLabels() {
-    document.querySelectorAll('[data-k]').forEach((e) => { e.textContent = keyName(primary(e.dataset.k)); });
+    document.querySelectorAll('[data-k]').forEach((e) => { e.textContent = actName(e.dataset.k); });
+    document.querySelectorAll('[data-padk]').forEach((e) => { e.textContent = dev === 'pad' ? actName(e.dataset.padk) : e.dataset.kbt; });   // keys that read differently on a pad
+    document.querySelectorAll('[data-kbonly]').forEach((e) => { e.hidden = dev === 'pad'; });
   }
   ND.audio.setMuted(S.mute); ND.audio.setVolumes(S.music / 100, S.sfx / 100);
 
@@ -3840,6 +3938,7 @@
   const inp = { left: false, right: false, up: false, down: false, space: false, trick: false, grab: false, flip: false };
   let confirmFrom = null, swallowSpace = false;   // restart confirmation: remembers where to go back to on Esc
   addEventListener('keydown', (e) => {
+    if (e.isTrusted !== false) setDevice('kb');
     if (e.key && e.key.length === 1 && e.code !== 'Space' && !e.code.startsWith('Numpad')) S.labels[e.code] = e.key.toUpperCase();
     if (listen) { e.preventDefault(); if (!e.repeat) handleListen(e); return; }
     if (swallowSpace && e.code === 'Space') { e.preventDefault(); return; }   // the Space that confirmed a restart must not also start a jump
@@ -3859,13 +3958,147 @@
       else if (state === 'play') pause(); else if (state === 'pause') resume(); else if (state === 'tutdone') toMenu();
     }
     else if ((e.code === 'Enter' || e.code === 'NumpadEnter') && state === 'play' && mode === 'tutorial') { e.preventDefault(); ND.tutorial.skipStep(); }
-    else if (act === 'mute') { const m = ND.audio.toggleMute(); S.mute = m; saveS(); toast(m ? 'SOUND OFF' : 'SOUND ON', 'info'); if (optOpen) buildOptions(); }
+    else if (act === 'mute') toggleMute();
     else if (trOpen || optOpen || boardOpen) return;
     else if (act === 'restart' && (state === 'play' || state === 'pause' || state === 'over')) openConfirm();
     else if (state === 'menu') { if (e.code === 'Digit1') startRun('timed'); else if (e.code === 'Digit2') startRun('endless'); }
   });
   addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) inp[k] = false; if (e.code === 'Space') { swallowSpace = false; if (navName) e.preventDefault(); } });
   addEventListener('blur', () => { for (const k in inp) inp[k] = false; if (state === 'play') pause(); });
+
+  /* ---------- controller: gamepad.js reads the device, this decides what the buttons do ---------- */
+  const PADK = ND.pad;
+  let dev = 'kb', padSwallow = false, padConn = false, padNavWas = false;   // dev: which device the prompts speak about
+  const padIn = { left: false, right: false, up: false, down: false, space: false, trick: false, grab: false, flip: false, ax: 0 };
+  const einp = { left: false, right: false, up: false, down: false, space: false, trick: false, grab: false, flip: false, ax: 0 };   // what the game sees: keyboard and controller together
+  const padHeld = (a) => S.pad[a].some((i) => i != null && PADK.st.btn[i]);
+  const padHit = (a) => S.pad[a].some((i) => i != null && PADK.st.hit[i]);
+  const ARROWS = { left: '←', right: '→', up: '↑', down: '↓' };
+  function actName(a) {
+    if (dev === 'pad') {
+      if (ARROWS[a]) return ARROWS[a];
+      const b = S.pad[a] && S.pad[a].find((i) => i != null);
+      return b != null ? PADK.name(b) : '—';
+    }
+    return keyName(primary(a));
+  }
+  function setDevice(d) { if (dev === d) return; dev = d; refreshKeyLabels(); paintNavbar(); }
+  let padNoteT = 0;
+  function padNote(text) {
+    const n = $('padNote'); n.textContent = text; n.classList.add('show');
+    clearTimeout(padNoteT); padNoteT = setTimeout(() => n.classList.remove('show'), 2600);
+  }
+  function toggleMute() { const m = ND.audio.toggleMute(); S.mute = m; saveS(); toast(m ? 'SOUND OFF' : 'SOUND ON', 'info'); if (optOpen) buildOptions(); }
+  function padStatus(on) {
+    padNote(on ? PADK.label + ' CONNECTED' : 'CONTROLLER DISCONNECTED');
+    if (on) { setDevice('pad'); if (optOpen) buildOptions(); }
+    else { setDevice('kb'); if (state === 'play') pause(); if (optOpen) buildOptions(); }
+  }
+  /* haptics */
+  function padRumble(n, d) {
+    if (!S.rumble || !PADK.connected) return;
+    const r = (a, b, ms) => PADK.rumble(a, b, ms);
+    if (n === 'land') { if (d.air > 0.3) { const k = Math.min(1, d.air / 2.2); r(0.25 + 0.5 * k, 0.15 + 0.3 * k, 70 + 110 * k); } }
+    else if (n === 'perfect') { r(0, 0.8, 110); setTimeout(() => r(0.6, 0.3, 140), 130); }
+    else if (n === 'crash') r(1, 0.7, 420);
+    else if (n === 'wall') r(0.35, 0.5, 90);
+    else if (n === 'mega') r(0.9, 0.5, 260);
+    else if (n === 'launch') r(0.5, 0.3, 140);
+    else if (n === 'boost') r(0, 0.45, 150);
+    else if (n === 'grindStart') r(0.3, 0.2, 90);
+    else if (n === 'bank') r(0, 0.5, 120);
+    else if (n === 'special') r(0.4, 0.7, 160);
+  }
+  /* menus: stick or D-pad moves (held = repeats), cross confirms, circle goes back, square deletes a letter on the name entry */
+  const NAVH = { up: false, down: false, left: false, right: false }, NAVT = { up: 0, down: 0, left: 0, right: 0 }, nofn = () => {};
+  function padNavDir(d, rep) {
+    if (navName === 'entry') {
+      if (performance.now() < enLockUntil) return;
+      entryKey({ code: d === 'up' ? 'ArrowUp' : d === 'down' ? 'ArrowDown' : d === 'left' ? 'ArrowLeft' : 'ArrowRight', key: '', repeat: rep, preventDefault: nofn });
+      return;
+    }
+    if (d === 'up' || d === 'down') navMove(d === 'up' ? -1 : 1);
+    else if (navName === 'menu') { if (!rep) riderStep(d === 'left' ? -1 : 1); }
+    else if (navName === 'board') { if (!rep) boardTab(d === 'left' ? -1 : 1); }
+    else navAdjust(d === 'left' ? -1 : 1, rep);
+  }
+  function padConfirm() {
+    if (navName === 'entry') {
+      if (performance.now() < enLockUntil) return;
+      if (enName.length) { navSfx('sel'); padSwallow = true; saveEntry(); } else navSfx('early');
+      return;
+    }
+    padSwallow = true; navConfirm();
+  }
+  function padBack() {
+    if (navName === 'entry') { if (performance.now() >= enLockUntil) skipEntry(); return; }
+    if (state === 'confirm') cancelConfirm();
+    else if (optOpen) closeOptions(); else if (trOpen) closeTricks(); else if (boardOpen) closeBoard();
+    else if (state === 'pause') resume(); else if (state === 'tutdone') toMenu();
+  }
+  function padPauseBtn() {
+    if (optOpen || trOpen || boardOpen) return;
+    if (state === 'play') pause(); else if (state === 'pause') resume(); else if (state === 'tutdone') toMenu();
+  }
+  function padMenu(dt) {
+    const P = PADK.st;
+    if (!padNavWas) for (const d in NAVH) { NAVH[d] = P[d]; NAVT[d] = 0.4; }   // a stick already held when the menu opens waits for the next push
+    for (const d in NAVH) {
+      if (P[d] && !NAVH[d]) { NAVH[d] = true; NAVT[d] = 0.4; padNavDir(d, false); }
+      else if (P[d]) { NAVT[d] -= dt; if (NAVT[d] <= 0) { NAVT[d] = 0.1; padNavDir(d, true); } }
+      else NAVH[d] = false;
+    }
+    if (P.hit[0]) padConfirm();
+    else if (P.hit[1]) padBack();
+    else if (P.hit[2] && navName === 'entry' && performance.now() >= enLockUntil) { enBack(); paintEntry(); navSfx('nav'); }
+    if (padHit('pause')) padPauseBtn();
+    else if (padHit('restart') && navName !== 'entry' && (state === 'pause' || state === 'over') && !(trOpen || optOpen || boardOpen)) openConfirm();
+  }
+  function padFrame(dt) {
+    const on = PADK.poll(S.padDead / 100);
+    PADK.enabled = S.rumble;
+    if (on !== padConn) { padConn = on; padStatus(on); }
+    for (const k in padIn) padIn[k] = k === 'ax' ? 0 : false;
+    if (on) {
+      const P = PADK.st;
+      if (P.strong) setDevice('pad');
+      if (listen && listen.pad) { if (P.firstHit >= 0) padBind(P.firstHit); }
+      else {
+        if (padHit('mute')) toggleMute();
+        if (navName) padMenu(dt);
+        else {
+          if (padHit('pause')) padPauseBtn();
+          else if (padHit('restart') && state === 'play') openConfirm();
+        }
+        if (!navName && state === 'play') {
+          padIn.left = P.left; padIn.right = P.right; padIn.up = P.up; padIn.down = P.down; padIn.ax = P.ax;
+          for (const a of ['space', 'trick', 'grab', 'flip']) padIn[a] = padHeld(a);
+          if (padSwallow) { if (padHeld('space')) padIn.space = false; else padSwallow = false; }   // the press that confirmed a menu must not also jump
+        }
+      }
+    }
+    padNavWas = !!navName;
+    for (const k in einp) einp[k] = k === 'ax' ? padIn.ax : (inp[k] || padIn[k]);
+  }
+  function padBind(b) {
+    const { a, i } = listen;
+    if (PAD_RESERVED.includes(b)) { say('That one is used for steering and menus. Pick another button.'); return; }
+    let holder = null;
+    for (const x in S.pad) S.pad[x].forEach((c, j) => { if (c === b && !(x === a && j === i)) holder = { a: x, i: j }; });
+    const prev = S.pad[a][i];
+    if (holder) S.pad[holder.a][holder.i] = prev;
+    S.pad[a][i] = b;
+    stopListen(); padChanged();
+    const nm = PADK.name(b);
+    say(!holder ? actLabel(a) + ' is now ' + nm + '.' : prev != null ? nm + ' swapped with "' + actLabel(holder.a) + '".' : nm + ' was taken from "' + actLabel(holder.a) + '", which now has no button there.');
+  }
+  function padChanged() { saveS(); buildOptions(); buildTricks(); refreshKeyLabels(); paintNavbar(); }
+  function padSlotBtn(a, i) {
+    const v = S.pad[a][i], b = mk('button', 'kb' + (v == null ? ' empty' : ''), PADK.name(v)); b.type = 'button';
+    b.dataset.slot = 'p' + a + i; b.setAttribute('aria-label', actLabel(a) + ' button ' + (i + 1) + ': ' + (v == null ? 'not set' : PADK.name(v)) + '. Click to change');
+    b.onclick = () => startListen(a, i, b, true);
+    return b;
+  }
 
   /* ---------- HUD ---------- */
   const el = {
@@ -4022,6 +4255,7 @@
 
   /* ---------- player events ---------- */
   player.onEvent = (n, d) => {
+    padRumble(n, d);
     if (mode === 'tutorial') {
       ND.tutorial.event(n, d);
       if (n === 'crash') { toast('WIPEOUT  no worries, try again', 'info'); ND.audio.sfx('crash'); ND.audio.grind(false, 0); return; }   // practice: no FAIL drop
@@ -4087,6 +4321,17 @@
     board: [['\u2190\u2192', 'Mode'], ['Space', 'Confirm'], ['Esc', 'Back']],
     tutdone: [['\u2191\u2193', 'Select'], ['Space', 'Confirm'], ['Esc', 'Menu']]
   };
+  const NAVBAR_PAD = {
+    menu: [['\u2191\u2193', 'Select'], ['\u2190\u2192', 'Rider'], ['@b0', 'Confirm']],
+    pause: [['\u2191\u2193', 'Select'], ['@b0', 'Confirm'], ['@pause', 'Resume']],
+    confirm: [['\u2191\u2193', 'Select'], ['@b0', 'Confirm'], ['@b1', 'Cancel']],
+    tricks: [['\u2191\u2193', 'Select'], ['@b0', 'Confirm'], ['@b1', 'Back']],
+    options: [['\u2191\u2193', 'Select'], ['\u2190\u2192', 'Adjust'], ['@b0', 'Confirm'], ['@b1', 'Back']],
+    result: [['\u2191\u2193', 'Select'], ['@b0', 'Confirm'], ['@restart', 'Restart']],
+    entry: [['\u2191\u2193', 'Letter'], ['\u2190\u2192', 'Move'], ['@b2', 'Delete'], ['@b0', 'Save'], ['@b1', 'Skip']],
+    board: [['\u2190\u2192', 'Mode'], ['@b0', 'Confirm'], ['@b1', 'Back']],
+    tutdone: [['\u2191\u2193', 'Select'], ['@b0', 'Confirm'], ['@b1', 'Menu']]
+  };
   function show(name, keep) {
     if (navName) navMem[navName] = navIdx;
     for (const k in overlays) overlays[k].hidden = k !== name;
@@ -4094,13 +4339,15 @@
     $('riderCard').hidden = name !== 'menu';
     navIdx = keep && navMem[name] != null ? navMem[name] : 0; navCol = 0;
     $('hud').style.visibility = name ? 'hidden' : '';
-    const nb = $('navbar');
-    nb.hidden = !name;
-    if (name) {
-      nb.textContent = '';
-      (NAVBAR[name] || []).forEach(([k, t]) => { const sp = document.createElement('span'), kb = document.createElement('kbd'); kb.textContent = k === '@restart' ? keyName(primary('restart')) : k; sp.appendChild(kb); sp.appendChild(document.createTextNode(t)); nb.appendChild(sp); });
-    }
+    paintNavbar();
     navPaint(false);
+  }
+  function paintNavbar() {
+    const nb = $('navbar');
+    nb.hidden = !navName; nb.textContent = '';
+    if (!navName) return;
+    const tok = (k) => k === '@restart' ? actName('restart') : k === '@pause' ? actName('pause') : /^@b\d+$/.test(k) ? PADK.name(+k.slice(2)) : k;
+    ((dev === 'pad' ? NAVBAR_PAD : NAVBAR)[navName] || []).forEach(([k, t]) => { const sp = document.createElement('span'), kb = document.createElement('kbd'); kb.textContent = tok(k); sp.appendChild(kb); sp.appendChild(document.createTextNode(t)); nb.appendChild(sp); });
   }
   /* ---------- menu navigation: arrows move, left/right adjust, Space confirms ---------- */
   function navUnits() {
@@ -4190,7 +4437,7 @@
   function leaveTutorial() { if (ND.tutorial.active) ND.tutorial.end(); }
   ND.tutorial.attach({
     player,
-    key: (a) => keyName(primary(a)),
+    key: (a) => actName(a),
     btn: (b) => ND.btnLabel(b),
     sfx: (n) => ND.audio.sfx(n),
     pulse: () => { el.flash.className = ''; void el.flash.offsetWidth; el.flash.className = 'on'; fovKick = Math.max(fovKick, 5); },
@@ -4222,7 +4469,7 @@
     const from = confirmFrom; confirmFrom = null;
     if (from === 'play') resume(); else if (from === 'pause') { state = 'pause'; show('pause', true); } else { state = 'over'; show('result', true); }
   }
-  function confirmRestart() { confirmFrom = null; swallowSpace = true; inp.space = false; if (mode === 'tutorial') startRun('tutorial', ND.tutorial.chapter); else startRun(mode); }
+  function confirmRestart() { confirmFrom = null; swallowSpace = true; inp.space = false; padSwallow = true; if (mode === 'tutorial') startRun('tutorial', ND.tutorial.chapter); else startRun(mode); }
   $('btnConfYes').onclick = confirmRestart;
   $('btnConfNo').onclick = cancelConfirm;
   function setBtn(id, text, sub) { const b = $(id); b.textContent = text; if (sub) { const sm = document.createElement('small'); sm.textContent = sub; b.appendChild(sm); } }
@@ -4488,6 +4735,7 @@
   const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   const ACTS = [['left', 'Carve left'], ['right', 'Carve right'], ['up', 'Up: tuck, trick arrow'], ['down', 'Down: brake, trick arrow'], ['space', 'Jump, perfect landing'],
     ['trick', 'Body spin, flip, grind switch'], ['flip', 'Flip tricks'], ['grab', 'Grab tricks'], ['restart', 'Restart'], ['mute', 'Mute'], ['pause', 'Pause']];
+  const PAD_ACTS = [['space', 'Jump, perfect landing'], ['trick', 'Body spin, flip, grind switch'], ['flip', 'Flip tricks'], ['grab', 'Grab tricks'], ['restart', 'Restart'], ['mute', 'Mute'], ['pause', 'Pause']];
   const actLabel = (a) => (ACTS.find((x) => x[0] === a) || [0, a])[1];
   let lastRes = S.res, previewT = 0;
   function applyS() {
@@ -4526,7 +4774,7 @@
     let g = section('AUDIO');
     slider(g, 'Music volume', 'music', 0, 100, 5, (v) => v + '%');
     slider(g, 'Effects volume', 'sfx', 0, 100, 5, (v) => v + '%', () => { ND.audio.init(); ND.audio.sfx('trick'); });
-    seg(g, 'Sound', () => S.mute, (v) => { S.mute = v; }, [[false, 'ON'], [true, 'MUTED']], 'Mute with ' + keyName(primary('mute')) + ' any time');
+    seg(g, 'Sound', () => S.mute, (v) => { S.mute = v; }, [[false, 'ON'], [true, 'MUTED']], 'Mute with ' + actName('mute') + ' any time');
     g = section('CONTROLS');
     bool(g, 'Show trick inputs in the combo feed', 'chips');
     const hdr = orow(g, 'Key bindings', 'Click a key, then press the new one. Backspace clears it, Esc cancels.');
@@ -4537,6 +4785,19 @@
       const r = orow(g, label), w = mk('div', 'kbs');
       if (a === 'pause') { const f = mk('button', 'kb fixed', 'ESC'); f.type = 'button'; f.tabIndex = -1; f.setAttribute('aria-label', 'Escape always pauses'); w.appendChild(f); }
       for (let i = 0; i < S.keys[a].length; i++) w.appendChild(slotBtn(a, i));
+      r.appendChild(w);
+    }
+    g = section('CONTROLLER');
+    orow(g, 'Controller', PADK.connected ? PADK.label + ' connected' : 'None found. Connect one and press any button.');
+    slider(g, 'Stick dead-zone', 'padDead', 5, 40, 1, (v) => v + '%');
+    bool(g, 'Vibration', 'rumble', 'ON', 'OFF', 'Rumble on landings, wall scrapes and wipeouts');
+    const phd = orow(g, 'Button bindings', 'Pick a slot, then press the new button. Backspace clears, Esc cancels. Steer and brake: left stick or D-pad.');
+    const prb = mk('button', 'mini', 'RESET BUTTONS'); prb.type = 'button';
+    prb.onclick = () => { for (const a in DEF_PAD) S.pad[a] = DEF_PAD[a].slice(); padChanged(); say('Buttons reset to default.'); };
+    phd.appendChild(prb);
+    for (const [a, label] of PAD_ACTS) {
+      const r = orow(g, label), w = mk('div', 'kbs');
+      for (let i = 0; i < S.pad[a].length; i++) w.appendChild(padSlotBtn(a, i));
       r.appendChild(w);
     }
     g = section('GRAPHICS');
@@ -4558,15 +4819,20 @@
     if (navName === 'options') navPaint(false);
   }
   function keysChanged() { buildKeymap(); saveS(); buildOptions(); buildTricks(); }
-  function startListen(a, i, btn) {
+  function startListen(a, i, btn, pad) {
     if (listen && listen.btn) listen.btn.classList.remove('listen');
-    listen = { a, i, btn }; btn.classList.add('listen'); btn.textContent = 'PRESS KEY';
-    say('Press the new key for "' + actLabel(a) + '". Backspace clears, Esc cancels.');
+    listen = { a, i, btn, pad: !!pad }; btn.classList.add('listen'); btn.textContent = pad ? 'PRESS BUTTON' : 'PRESS KEY';
+    say(pad ? 'Press the new button on the controller for "' + actLabel(a) + '". Backspace clears, Esc cancels.' : 'Press the new key for "' + actLabel(a) + '". Backspace clears, Esc cancels.');
   }
   function stopListen() { if (listen && listen.btn) listen.btn.classList.remove('listen'); listen = null; }
   function handleListen(e) {
     const { a, i } = listen;
     if (e.code === 'Escape') { stopListen(); buildOptions(); say('Cancelled.'); return; }
+    if (listen.pad) {
+      if (e.code === 'Backspace' || e.code === 'Delete') { S.pad[a][i] = null; stopListen(); padChanged(); say(actLabel(a) + ' slot cleared.'); }
+      else say('Press a button on the controller. Backspace clears, Esc cancels.');
+      return;
+    }
     if (e.code === 'Backspace' || e.code === 'Delete') { S.keys[a][i] = null; stopListen(); keysChanged(); say(actLabel(a) + ' slot cleared.'); return; }
     if (RESERVED.test(e.code)) { say('That key is reserved. Pick another one.'); return; }
     let holder = null;
@@ -4662,6 +4928,7 @@
     const dt = Math.min(0.033, Math.max(0.001, (now - last) / 1000)); last = now;
     if (S.fps) { fpsN++; fpsT += (now - fpsLast) / 1000; if (fpsT >= 0.5) { fpsEl.textContent = Math.round(fpsN / fpsT) + ' FPS'; fpsN = 0; fpsT = 0; } }
     fpsLast = now;
+    padFrame(dt);
     if (state === 'countdown') {
       const before = Math.ceil(cd); cd -= dt;
       player.pose(dt, NOINP);
@@ -4670,8 +4937,8 @@
     } else if (state === 'play') {
       let ts = 1;
       if (slowT > 0) { slowT -= dt; ts = slowT > 0.25 ? 0.2 : 0.2 + 0.8 * (1 - Math.max(0, slowT) / 0.25); }   // slow-mo beat after a failed combo
-      player.update(dt * ts, inp);
-      if (mode === 'tutorial') ND.tutorial.update(dt * ts, inp);
+      player.update(dt * ts, einp);
+      if (mode === 'tutorial') ND.tutorial.update(dt * ts, einp);
       if (mode === 'timed') { timeLeft -= dt; if (timeLeft <= 0) { timeLeft = 0; finish(); } }
       ND.audio.carve(player.speed, player.state === 'ride', Math.max(Math.abs(player.hv) / 2, player.slide * 1.4));
     } else if (state === 'menu') {
