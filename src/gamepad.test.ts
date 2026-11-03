@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { deadZone, kindOf, labelOf, NB, pad } from './gamepad';
+import { deadZone, glyphOf, kindOf, labelOf, NB, pad } from './gamepad';
 
 interface FakePad {
   index: number;
@@ -165,5 +165,29 @@ describe('rumble', () => {
     pad.rumble(1, 1, 100);
     pad.enabled = true;
     expect(playEffect).not.toHaveBeenCalled();
+  });
+});
+
+describe('button glyphs', () => {
+  it('colours the PlayStation face buttons like the real pad', () => {
+    expect(glyphOf('ps', 0)).toEqual({ text: '✕', shape: 'face', tone: 'blue' });
+    expect(glyphOf('ps', 1)).toEqual({ text: '○', shape: 'face', tone: 'red' });
+    expect(glyphOf('ps', 2)).toEqual({ text: '□', shape: 'face', tone: 'pink' });
+    expect(glyphOf('ps', 3)).toEqual({ text: '△', shape: 'face', tone: 'green' });
+  });
+  it('colours the Xbox face buttons like the real pad', () => {
+    expect(glyphOf('xbox', 0)).toEqual({ text: 'A', shape: 'face', tone: 'green' });
+    expect(glyphOf('xbox', 1)).toEqual({ text: 'B', shape: 'face', tone: 'red' });
+    expect(glyphOf('xbox', 2)).toEqual({ text: 'X', shape: 'face', tone: 'blue' });
+    expect(glyphOf('xbox', 3)).toEqual({ text: 'Y', shape: 'face', tone: 'yellow' });
+  });
+  it('draws shoulders, triggers and the D-pad as their own shapes', () => {
+    expect(glyphOf('ps', 6)).toEqual({ text: 'L2', shape: 'pill', tone: '' });
+    expect(glyphOf('xbox', 7)).toEqual({ text: 'RT', shape: 'pill', tone: '' });
+    expect(glyphOf('ps', 12)).toEqual({ text: '↑', shape: 'dpad', tone: '' });
+  });
+  it('uses the PlayStation look for pads it does not recognise', () => {
+    expect(glyphOf('other', 2)).toEqual(glyphOf('ps', 2));
+    expect(glyphOf('ps', 19).text).toBe('BTN 19');
   });
 });

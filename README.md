@@ -85,11 +85,11 @@ rebound in the options.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/all-tricks.jpg" alt="All tricks list with their inputs"></td>
+    <td width="50%"><img src="docs/screenshots/all-tricks.jpg" alt="Trickbook: every trick with its input"></td>
     <td width="50%"><img src="docs/screenshots/tutorial.jpg" alt="Tutorial: the carve step"></td>
   </tr>
   <tr>
-    <td align="center"><sub><b>ALL TRICKS</b> Every input on one screen</sub></td>
+    <td align="center"><sub><b>TRICKBOOK</b> Every input on one screen, with controller buttons when a pad is connected</sub></td>
     <td align="center"><sub><b>TUTORIAL</b> Learn by doing, step by step</sub></td>
   </tr>
 </table>

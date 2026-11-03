@@ -165,6 +165,24 @@
   .tr-name { color: var(--paper); font-weight: 700; min-width: 0; }
   .tr-keys { color: var(--cyan); font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .tr-row.sp .tr-keys { color: var(--gold); }
+  /* controller button glyphs (trickbook): round face buttons in the pad's own colours, pills for shoulders and triggers, a cross for the D-pad */
+  .tr-keys.pad { display: inline-flex; align-items: center; gap: 3px; color: var(--dim); font-size: 12px; }
+  kbd.pg { --gc: #c9c3ee; display: inline-grid; place-items: center; box-sizing: border-box; min-width: 20px; height: 20px; padding: 0 5px; margin: 0; vertical-align: middle; line-height: 1;
+    font: 700 11px var(--body); font-style: normal; letter-spacing: .02em; color: var(--gc); background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.18), #0a0e26 72%);
+    border: 1.5px solid var(--gc); border-radius: 6px; box-shadow: 0 0 6px color-mix(in srgb, var(--gc) 55%, transparent), inset 0 -2px 0 rgba(0,0,0,.5); text-shadow: 0 0 5px var(--gc); clip-path: none; }
+  kbd.pg.face { width: 20px; padding: 0; border-radius: 50%; font-size: 13px; }
+  kbd.pg.face svg { width: 12px; height: 12px; fill: none; stroke: var(--gc); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; filter: drop-shadow(0 0 2px var(--gc)); }
+  .tr-sec kbd.pg.face svg { width: 14px; height: 14px; }
+  kbd.pg.face.xb { font: italic 700 13px var(--display); }
+  kbd.pg.pill { border-radius: 4px 4px 9px 9px; font-size: 10px; }
+  kbd.pg.dpad { width: 19px; min-width: 0; height: 19px; padding: 0; border: 0; background: none; box-shadow: none; }
+  kbd.pg.dpad svg { width: 100%; height: 100%; display: block; }
+  kbd.pg.dpad .off { fill: rgba(143,134,196,.4); }
+  kbd.pg.dpad .on { fill: var(--cyan); filter: drop-shadow(0 0 2px var(--cyan)); }
+  .tr-row.sp kbd.pg.dpad .on { fill: var(--gold); filter: drop-shadow(0 0 2px var(--gold)); }
+  kbd.pg.blue { --gc: #6fa8ff; } kbd.pg.red { --gc: #ff5a6e; } kbd.pg.pink { --gc: #ff7ad9; } kbd.pg.green { --gc: #3ff0a0; } kbd.pg.yellow { --gc: #ffd23f; }
+  .tr-sec kbd.pg, .hint kbd.pg { margin: 0 2px; }
+  .tr-sec kbd.pg.face { width: 24px; height: 24px; font-size: 15px; }
   .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 22px; padding: 14px 18px; }
   .stats div { display: flex; justify-content: space-between; gap: 10px; color: var(--dim); border-bottom: 1px dashed rgba(143,134,196,.22); text-transform: uppercase; font-size: 13px; letter-spacing: .08em; }
   .stats b { color: var(--paper); font-variant-numeric: tabular-nums; letter-spacing: 0; }
@@ -242,7 +260,7 @@
   @keyframes pop { from { transform: scale(1.5); } to { transform: scale(1); } }
   @keyframes toast { 0% { opacity: 0; transform: translateX(30px); } 8% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
   @keyframes blink { 50% { opacity: .35; } }
-  /* all tricks: normal tricks on the left, specials on the right, so everything fits without scrolling */
+  /* trickbook: normal tricks on the left, specials on the right, so everything fits without scrolling */
   #tricks .panel { width: min(1180px, 100%); gap: 10px; }
   .tr-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 28px; align-items: center; }
   .tr-cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 4px 26px; align-items: start; }

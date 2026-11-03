@@ -67,7 +67,9 @@ export function boot(): void {
   const primary = (a) => S.keys[a].find((c) => c) || null;
   ND.btnLabel = (b) => { const a = b === 'A' ? 'flip' : 'grab', n = actName(a); return n === '\u2014' ? b : n; };   // tricks.js uses it for the combo chips
   function refreshKeyLabels() {
+    paintTrickbook();
     document.querySelectorAll('[data-k]').forEach((e) => { e.textContent = actName(e.dataset.k); });
+    document.querySelectorAll('#tricks kbd[data-k]').forEach((e) => { e.className = ''; if (dev === 'pad') padGlyph(e, actName(e.dataset.k), padBtn(e.dataset.k)); });   // the trickbook draws real controller buttons
     document.querySelectorAll('[data-padk]').forEach((e) => { e.textContent = dev === 'pad' ? actName(e.dataset.padk) : e.dataset.kbt; });   // keys that read differently on a pad
     document.querySelectorAll('[data-kbonly]').forEach((e) => { e.hidden = dev === 'pad'; });
   }
@@ -195,6 +197,25 @@ export function boot(): void {
     }
     return keyName(primary(a));
   }
+  const padBtn = (a) => (S.pad[a] ? S.pad[a].find((i) => i != null) : undefined);
+  /* turns a kbd into a controller button glyph: round coloured face buttons, pills for shoulders and triggers, a D-pad cross for directions */
+  function padGlyph(el, text, i) {
+    if (i == null) { el.className = ''; el.textContent = text; return el; }
+    const g = PADK.glyph(i);
+    el.className = 'pg ' + g.shape + (g.tone ? ' ' + g.tone : '') + (PADK.kind === 'xbox' ? ' xb' : '');
+    if (g.shape === 'face' && PADK.kind !== 'xbox') el.innerHTML = '<svg viewBox="0 0 10 10" aria-hidden="true">' + PS_SHAPES[i] + '</svg>', el.title = g.text;   // the PlayStation symbols are drawn, fonts render them too small
+    else el.textContent = g.text;
+    return el;
+  }
+  const PS_SHAPES = ['<path d="M2.4 2.4 7.6 7.6M7.6 2.4 2.4 7.6"/>', '<circle cx="5" cy="5" r="2.9"/>', '<rect x="2.4" y="2.4" width="5.2" height="5.2"/>', '<path d="M5 2 8.1 7.4H1.9Z"/>'];
+  const glyphFor = (a) => padGlyph(document.createElement('kbd'), actName(a), padBtn(a));
+  /* a direction as a little D-pad with the pushed arm lit (a diagonal lights two arms) */
+  const ARMS = { U: '<rect x="4" y="0" width="4" height="4.6"/>', D: '<rect x="4" y="7.4" width="4" height="4.6"/>', L: '<rect x="0" y="4" width="4.6" height="4"/>', R: '<rect x="7.4" y="4" width="4.6" height="4"/>' };
+  function dpadGlyph(dir) {
+    const e = document.createElement('kbd'); e.className = 'pg dpad'; e.title = dir.split('').map((d) => ({ U: 'up', D: 'down', L: 'left', R: 'right' })[d]).join('-');
+    e.innerHTML = '<svg viewBox="0 0 12 12" aria-hidden="true"><g class="off">' + Object.keys(ARMS).filter((k) => !dir.includes(k)).map((k) => ARMS[k]).join('') + '<rect x="4" y="4" width="4" height="4"/></g><g class="on">' + dir.split('').map((k) => ARMS[k]).join('') + '</g></svg>';
+    return e;
+  }
   function setDevice(d) { if (dev === d) return; dev = d; refreshKeyLabels(); paintNavbar(); }
   let padNoteT = 0;
   function padNote(text) {
@@ -204,7 +225,7 @@ export function boot(): void {
   function toggleMute() { const m = ND.audio.toggleMute(); S.mute = m; saveS(); toast(m ? 'SOUND OFF' : 'SOUND ON', 'info'); if (optOpen) buildOptions(); }
   function padStatus(on) {
     padNote(on ? PADK.label + ' CONNECTED' : 'CONTROLLER DISCONNECTED');
-    if (on) { setDevice('pad'); if (optOpen) buildOptions(); }
+    if (on) { setDevice('pad'); refreshKeyLabels(); if (optOpen) buildOptions(); }   // refresh even if already on 'pad': a different pad may show different glyphs
     else { setDevice('kb'); if (state === 'play') pause(); if (optOpen) buildOptions(); }
   }
   /* haptics */
@@ -309,7 +330,7 @@ export function boot(): void {
     const nm = PADK.name(b);
     say(!holder ? actLabel(a) + ' is now ' + nm + '.' : prev != null ? nm + ' swapped with "' + actLabel(holder.a) + '".' : nm + ' was taken from "' + actLabel(holder.a) + '", which now has no button there.');
   }
-  function padChanged() { saveS(); buildOptions(); buildTricks(); refreshKeyLabels(); paintNavbar(); }
+  function padChanged() { saveS(); buildOptions(); refreshKeyLabels(); paintNavbar(); }
   function padSlotBtn(a, i) {
     const v = S.pad[a][i], b = mk('button', 'kb' + (v == null ? ' empty' : ''), PADK.name(v)); b.type = 'button';
     b.dataset.slot = 'p' + a + i; b.setAttribute('aria-label', actLabel(a) + ' button ' + (i + 1) + ': ' + (v == null ? 'not set' : PADK.name(v)) + '. Click to change');
@@ -1063,15 +1084,30 @@ export function boot(): void {
 
   ND.TRICK_INPUT = 'after';   // one fixed style: tap the arrows, then the trick button
   try { localStorage.removeItem('cyberslide-input'); } catch (e) { /* ignore */ }
-  function buildTricks() {
-    $('trHow').innerHTML = 'In the air, tap the arrows in order, then press <kbd data-k="flip">A</kbd> (flip) or <kbd data-k="grab">D</kbd> (grab) within half a second. Holding an arrow works too. A diagonal is two arrows pressed together. Each trick counts once per jump. <kbd data-k="trick">S</kbd> + arrows still spins and flips your body.';
-    $('menuHow').innerHTML = 'Tap arrows, then <kbd data-k="flip">A</kbd> for <b>flip tricks</b> or <kbd data-k="grab">D</kbd> for <b>grabs</b>. See ALL TRICKS.';
+  const TB_HOW = {
+    kb: 'In the air, tap the arrows in order, then press <kbd data-k="flip">A</kbd> (flip) or <kbd data-k="grab">D</kbd> (grab) within half a second. Holding an arrow works too. A diagonal is two arrows pressed together. Each trick counts once per jump. <kbd data-k="trick">S</kbd> + arrows still spins and flips your body.',
+    pad: 'In the air, push the D-pad or left stick in order, then press <kbd data-k="flip">A</kbd> (flip) or <kbd data-k="grab">D</kbd> (grab) within half a second. Holding a direction works too. A diagonal is two directions pushed together. Each trick counts once per jump. <kbd data-k="trick">S</kbd> + directions still spins and flips your body.'
+  };
+  /* the trickbook: every trick and its input. Repainted whenever the prompts switch between keyboard and controller */
+  function paintTrickbook() {
+    const pad = dev === 'pad';
+    $('trHow').innerHTML = TB_HOW[pad ? 'pad' : 'kb'];
+    const back = $('trBackKey'); back.textContent = '';
+    back.appendChild(pad ? padGlyph(document.createElement('kbd'), '', 1) : document.createTextNode('ESC'));
     const fill = (id, list) => {
       const box = $(id); box.textContent = '';
       list.forEach((t) => {
         const r = document.createElement('div'); r.className = 'tr-row' + (t.sp ? ' sp' : '');
         const n = document.createElement('span'); n.className = 'tr-name'; n.textContent = t.name;
-        const k = document.createElement('span'); k.className = 'tr-keys'; k.textContent = ND.trickInput(t);
+        const k = document.createElement('span'); k.className = 'tr-keys';
+        if (!pad) k.textContent = ND.trickInput(t);
+        else {
+          k.classList.add('pad');
+          t.seq.forEach((d) => k.appendChild(dpadGlyph(d)));
+          k.appendChild(document.createTextNode(t.seq.length ? '+' : ''));
+          k.appendChild(glyphFor(t.btn === 'A' ? 'flip' : 'grab'));
+          if (!t.seq.length) k.appendChild(document.createTextNode('alone'));
+        }
         r.appendChild(n); r.appendChild(k); box.appendChild(r);
       });
     };
@@ -1080,9 +1116,9 @@ export function boot(): void {
     fill('trGrab', T.filter((t) => t.btn === 'D' && !t.sp));
     fill('trSpecA', T.filter((t) => t.btn === 'A' && t.sp));
     fill('trSpecD', T.filter((t) => t.btn === 'D' && t.sp));
-    refreshKeyLabels();
   }
-  buildTricks();
+  $('menuHow').innerHTML = 'Tap arrows, then <kbd data-k="flip">A</kbd> for <b>flip tricks</b> or <kbd data-k="grab">D</kbd> for <b>grabs</b>. See TRICKBOOK.';
+  refreshKeyLabels();
   function openTricks(from) { trOpen = true; trFrom = from; show('tricks'); $('tricks').scrollTop = 0; }
   function closeTricks() { trOpen = false; show(trFrom, true); }
   $('btnTricks').onclick = () => openTricks('menu');
@@ -1176,7 +1212,7 @@ export function boot(): void {
     r.appendChild(db);
     if (navName === 'options') navPaint(false);
   }
-  function keysChanged() { buildKeymap(); saveS(); buildOptions(); buildTricks(); }
+  function keysChanged() { buildKeymap(); saveS(); buildOptions(); refreshKeyLabels(); }
   function startListen(a, i, btn, pad) {
     if (listen && listen.btn) listen.btn.classList.remove('listen');
     listen = { a, i, btn, pad: !!pad }; btn.classList.add('listen'); btn.textContent = pad ? 'PRESS BUTTON' : 'PRESS KEY';

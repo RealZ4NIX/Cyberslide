@@ -50,6 +50,29 @@ const NAMES = {
   ],
 };
 
+/** how a button is drawn as an on-screen glyph: its label, its shape and its colour */
+export interface PadGlyph {
+  text: string;
+  /** face: round face button, pill: shoulders, triggers and system buttons, dpad: a D-pad direction */
+  shape: 'face' | 'pill' | 'dpad';
+  /** colour of a face button, as printed on the real pad ('' for everything else) */
+  tone: '' | 'blue' | 'red' | 'pink' | 'green' | 'yellow';
+}
+
+const FACE_TONES = {
+  ps: ['blue', 'red', 'pink', 'green'], // ✕ ○ □ △
+  xbox: ['green', 'red', 'blue', 'yellow'], // A B X Y
+} as const;
+
+/** the glyph for button i on this kind of pad (pads we don't recognise use the PlayStation look) */
+export function glyphOf(kind: PadKind, i: number): PadGlyph {
+  const k = kind === 'xbox' ? 'xbox' : 'ps';
+  const text = NAMES[k][i] || 'BTN ' + i;
+  if (i >= 0 && i <= 3) return { text, shape: 'face', tone: FACE_TONES[k][i] };
+  if (i >= 12 && i <= 15) return { text, shape: 'dpad', tone: '' };
+  return { text, shape: 'pill', tone: '' };
+}
+
 /* Xbox is checked first: an Xbox Series pad over Bluetooth calls itself "Xbox Wireless Controller", which would
    otherwise match the PlayStation "wireless controller" pattern */
 export const kindOf = (id: string | null | undefined): PadKind =>
@@ -149,6 +172,9 @@ export const pad = {
   enabled: true,
   name(i: number | null | undefined): string {
     return i == null ? '—' : NAMES[this.kind === 'xbox' ? 'xbox' : 'ps'][i] || 'BTN ' + i;
+  },
+  glyph(i: number): PadGlyph {
+    return glyphOf(this.kind, i);
   },
   /** read the pad once per frame; dz is the stick dead-zone (0..0.5). Returns whether a pad is connected. */
   poll(dz: number): boolean {
