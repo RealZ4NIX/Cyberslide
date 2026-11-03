@@ -50,11 +50,13 @@ const NAMES = {
   ],
 };
 
+/* Xbox is checked first: an Xbox Series pad over Bluetooth calls itself "Xbox Wireless Controller", which would
+   otherwise match the PlayStation "wireless controller" pattern */
 export const kindOf = (id: string | null | undefined): PadKind =>
-  /054c|dualsense|dualshock|wireless controller|playstation|sony/i.test(id || '')
-    ? 'ps'
-    : /xbox|xinput|045e|microsoft/i.test(id || '')
-      ? 'xbox'
+  /xbox|xinput|045e|microsoft/i.test(id || '')
+    ? 'xbox'
+    : /054c|dualsense|dualshock|wireless controller|playstation|sony/i.test(id || '')
+      ? 'ps'
       : 'other';
 
 export const labelOf = (id: string | null | undefined, kind: PadKind): string =>
