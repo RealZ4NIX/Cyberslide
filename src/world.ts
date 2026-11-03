@@ -1,282 +1,26 @@
-// @ts-nocheck -- ported as-is from index.html; typed step by step
 
-/* CYBERSLIDE - world: heightfield hill, ramps, rails, obstacles, neon city */
+/* CYBERSLIDE - world: turns the course (course.ts) into meshes: terrain, rails, obstacles, buildings, and streams
+   chunks in and out around the rider. */
 
 import * as THREE from 'three';
 import { ND } from './nd';
+import {
+  SEG, HALF, SLOPE, rng, hash, C, kindAt, seg, base, dipAt, rampSum, wallSum, megaAt, bowlDown, H,
+  blocksNear, railsNear, railX, railY, setCoursePlan,
+} from './course';
+import type { Rail, Block, Building, CoursePlan } from './course';
 
-const SEG = 70;      // length of one hill segment (m along the slope)
-const HALF = 17;     // half width of the rideable corridor
-const SLOPE = 0.4;   // hill drop per metre
-ND.SEG = SEG; ND.HALF = HALF; ND.SLOPE = SLOPE;
+type Draw2D = (g: CanvasRenderingContext2D, w: number, h: number) => void;
+type Mat = THREE.Material;
+type AnyMesh = THREE.Mesh<THREE.BufferGeometry, Mat>;
 
-function rng(seed) {
-  let a = seed | 0;
-  return function () {
-    a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-function hash(n) { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); }
-
-/* ---------- course layout: which kind of segment comes where, and where the path bends ---------- */
-const segCache = new Map();
-const SKY_OFF = 41, MID_OFF = 33, MEGA_DIP = 48, MEGA_D = 8, MEGA_CAP = 19;   // where the elevated rails start inside their segment
-const sm = (t) => { t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t); };
-const infos = [];
-let lastDir = 1;
-
-let plan = null;   // tutorial courses: plan(i) -> segment kind, so a short course can repeat forever
-function makeInfo(i) {
-  if (plan) { infos.push({ kind: plan(i), bend: null, c: 0, cEnd: 0, hasDip: false }); return; }
-  const prev = infos[i - 1];
-  // second half of a long, smooth bend
-  if (prev && prev.bend && prev.bend.k1 >= i) {
-    const b = prev.bend;
-    infos.push({ kind: 'bendc', bend: b, c: 0, cEnd: b.k1 === i ? b.c0 + b.dx : 0 });
-    return;
-  }
-  const c = prev ? prev.cEnd : 0;
-  const r = rng(i * 104729 + 7), p = r();
-  let kind;
-  if (i < 2) kind = 'start';
-  else if (prev.kind === 'sky' || prev.kind === 'mid') kind = 'land';   // landing slope after leaving a high rail
-  else if (prev.kind === 'big' || prev.kind === 'window' || prev.kind === 'mega' || prev.kind === 'pipe' || prev.kind === 'railchain' || prev.hasDip || (i >= 2 && infos[i - 2].kind === 'pipe') || (i >= 3 && infos[i - 3].kind === 'pipe')) kind = 'clear';   // a long landing slope / pipe wall spills into this one
-  else if (p < 0.24) kind = 'bend';
-  else if (p < 0.29) kind = 'kicker';
-  else if (p < 0.33) kind = 'rails';
-  else if (p < 0.39) kind = 'railchain';
-  else if (p < 0.42) kind = 'big';
-  else if (p < 0.46) kind = 'kickrail';
-  else if (p < 0.50) kind = 'sky';
-  else if (p < 0.54) kind = 'mid';
-  else if (p < 0.59) kind = 'window';
-  else if (p < 0.75) kind = 'mega';
-  else if (p < 0.90) kind = 'pipe';
-  else if (p < 0.96) kind = 'open';
-  else kind = 'clear';
-  if (kind !== 'bend') { infos.push({ kind, bend: null, c, cEnd: c, hasDip: kind === 'kicker' && r() < 0.6 }); return; }
-  // bends: mostly smooth, long ones, some tighter ones. They steer back and forth around the middle.
-  const q = r(), flav = q < 0.28 ? 'smooth' : q < 0.82 ? 'long' : 'sharp';
-  const n = flav === 'long' ? 2 : 1;
-  let mag = flav === 'smooth' ? 9 + r() * 4 : flav === 'long' ? 16 + r() * 10 : 18 + r() * 8;
-  let dir = r() < 0.65 ? -lastDir : lastDir;
-  if (c > 14) dir = -1; else if (c < -14) dir = 1;
-  mag = Math.min(mag, Math.max(6, 34 - dir * c));
-  lastDir = dir;
-  const b = { s0: i * SEG, len: n * SEG, dx: dir * mag, c0: c, k1: i + n - 1, flav };
-  infos.push({ kind: 'bend', bend: b, c, cEnd: n === 1 ? c + b.dx : 0 });
-}
-function info(k) { if (k < 0) k = 0; while (infos.length <= k) makeInfo(infos.length); return infos[k]; }
-// x of the middle of the rideable corridor at distance s down the hill
-ND.C = function (s) {
-  const f = info(Math.floor(s / SEG));
-  if (f.bend) { const b = f.bend; return b.c0 + b.dx * sm((s - b.s0) / b.len); }
-  return f.c;
-};
-ND.kindAt = (k) => info(k).kind;
-
-function barrier(s, x, wide) { return { kind: 'barrier', x, s, w: wide ? 4.4 : 3.2, d: 1.2, h: 1.15 }; }
-function pylon(s, x) { return { kind: 'pylon', x, s, w: 1.3, d: 1.3, h: 5 }; }
-// landing slope: the hill drops away, then eases back into its normal slope
-function mkDip(x, s, len, d, t0) { return { x, s, len, d, t0: t0 || 0.6, w: 24 }; }
-
-// tier 0 = ground rail, 1 = mid rail (needs a charged jump), 2 = sky rail (needs a big ramp), 3 = window rail (out of a building, slopes down into the course)
-function mkRail(r, x, s, len, tier, inc, o) {
-  const h = [3.0, 5.0, 7.0, 9.0][tier] + (tier && tier < 3 ? (r() - 0.5) * 0.5 : 0);
-  return Object.assign({ x, x1: x, s, len, tier, h, h1: h, inc: inc ? 6 : 0, rise: inc ? 1.3 + r() * 0.5 : 0, tol: [1.6, 1.8, 2.1, 2.1][tier] }, o || {});
-}
-
-function gen(k) {
-  const r = rng(k * 7919 + 13);
-  const s0 = k * SEG, inf = info(k), kind = inf.kind, cx = inf.c;
-  const g = { k, s0, kind, ramps: [], rails: [], blocks: [], bld: [], dips: [], dspill: [], spill: [], posts: [], walls: [], wspill: [], wspill2: [] };
-  const o = (v) => cx + v;
-  if (kind === 'kicker') {                  // kicker, sometimes with a landing slope, rarely a lone barrier off to one side
-    const x = o(Math.round((r() - 0.5) * 14));
-    g.ramps.push({ x, s: s0 + (inf.hasDip ? 6 : 12), len: 11, w: 8, h: 1.8 + r() * 0.7 });
-    if (inf.hasDip) g.dips.push(mkDip(x, s0 + 31, 66, 3.0 + r() * 0.6, 0.6));
-    else if (r() < 0.2) g.blocks.push(barrier(s0 + 52, o((r() < 0.5 ? -1 : 1) * (6 + r() * 6)), true));
-  } else if (kind === 'rails') {            // mostly ground rails, some mid-height ones that need a charged jump
-    const n = 1 + (r() < 0.5 ? 1 : 0);
-    for (let i = 0; i < n; i++) {
-      const tier = r() < 0.3 ? 1 : 0;
-      g.rails.push(mkRail(r, o(Math.round((r() - 0.5) * 20)), s0 + 8 + i * 30 + Math.floor(r() * 4), tier ? 20 : 15 + Math.floor(r() * 5), tier, r() < 0.55));
-    }
-  } else if (kind === 'railchain') {        // kicker, then a row of rails with short gaps: grind, hop, grind, hop
-    const x0 = o(Math.round((r() - 0.5) * 8));
-    g.ramps.push({ x: x0, s: s0 + 8, len: 10, w: 8, h: 1.6 });
-    let rs = s0 + 28, rx = x0;
-    for (let i = 0; i < 4; i++) {
-      const nx = Math.max(o(-9), Math.min(o(9), rx + (r() - 0.5) * 5)), last = i === 3;
-      const ln = i ? 15 : 26;
-      g.rails.push(mkRail(r, rx, rs, ln, 0, last, { x1: nx }));
-      rx = nx; rs += ln + 8 + Math.floor(r() * 3);
-    }
-  } else if (kind === 'big') {              // big air into a landing slope
-    const x = o(Math.round((r() - 0.5) * 8));
-    g.ramps.push({ x, s: s0 + 10, len: 15, w: 11, h: 3.4 + r() * 0.8 });
-    g.dips.push(mkDip(x, s0 + 45, 70, 5 + r() * 1.0, 0.62));
-  } else if (kind === 'kickrail') {         // kicker into a long ground rail
-    const x = o(Math.round((r() - 0.5) * 12));
-    g.ramps.push({ x, s: s0 + 8, len: 10, w: 8, h: 2.0 });
-    g.rails.push(mkRail(r, x, s0 + 30, 32, 0, r() < 0.5));
-  } else if (kind === 'sky') {              // big ramp, then a high rail with a ramp end
-    const x = o(Math.round((r() - 0.5) * 10));
-    g.ramps.push({ x, s: s0 + 4, len: 15, w: 11, h: 3.9 + r() * 0.4 });
-    g.rails.push(mkRail(r, x, s0 + SKY_OFF, 50, 2, true));
-  } else if (kind === 'mid') {              // mid rail after a kicker
-    const x = o(Math.round((r() - 0.5) * 12));
-    g.ramps.push({ x, s: s0 + 8, len: 11, w: 8, h: 2.0 + r() * 0.4 });
-    g.rails.push(mkRail(r, x, s0 + MID_OFF, 44, 1, r() < 0.6));
-  } else if (kind === 'window') {           // big ramp, then a rail from a building window angling down into the course
-    const side = r() < 0.5 ? -1 : 1;
-    g.ramps.push({ x: o(side * 11), s: s0 + 4, len: 15, w: 10, h: 2.6 + r() * 0.3 });
-    g.rails.push(mkRail(r, o(side * (HALF + 0.2)), s0 + 12, 68, 3, true, { x1: o(side * 8.5), h: 9, h1: 2.6, rise: 1.7, win: side }));
-  } else if (kind === 'mega') {             // mega quarterpipe straight ahead: huge air, long landing slope
-    const x = o(Math.round((r() - 0.5) * 6));
-    g.ramps.push({ x, s: s0 + 6, len: 13, w: 12, h: 8 + r() * 0.6, p: 2.3, mega: true });
-    g.dips.push(mkDip(x, s0 + MEGA_DIP, 92, MEGA_D + r() * 0.8, 0.6));
-  } else if (kind === 'pipe') {             // mega quarterpipe along one side of the course: launch off the lip, land back on the wall
-    g.walls.push({ side: r() < 0.5 ? -1 : 1, s: s0 + 4, len: 270, H: 10, toe: 7.5, lip: HALF });
-  } else if (kind === 'tutramp') {          // tutorial: one friendly ramp straight ahead with a long landing slope
-    g.ramps.push({ x: cx, s: s0 + 10, len: 11, w: 9, h: 2.3 });
-    g.dips.push(mkDip(cx, s0 + 31, 66, 3.4, 0.6));
-  } else if (kind === 'tutbar') {           // tutorial: a short row of wide-spaced barriers to steer around
-    g.blocks.push(barrier(s0 + 18, cx - 6, true), barrier(s0 + 34, cx + 6, true), barrier(s0 + 50, cx - 5, true));
-  } else if (kind === 'tutrail') {          // tutorial: ramp straight into one ground rail with a ramp end
-    g.ramps.push({ x: cx, s: s0 + 6, len: 10, w: 9, h: 2.0 });
-    g.rails.push(mkRail(r, cx, s0 + 28, 36, 0, true));
-  } else if (kind === 'open') {             // open stretch, two wide-spaced barriers
-    g.blocks.push(barrier(s0 + 22, o(-(4 + r() * 8)), true));
-    g.blocks.push(barrier(s0 + 48, o(4 + r() * 8), true));
-  } else if (kind === 'land') {             // landing slope for whoever just left a high rail
-    const prev = seg(k - 1).rails[0];
-    const x = prev ? prev.x : cx;
-    const sky = prev && prev.tier === 2;
-    g.dips.push(mkDip(x, s0 + (sky ? 30 : 14), sky ? 40 : 50, 3 + r() * 0.5, 0.7));
-  }
-  g.spill = g.rails.filter((q) => q.s + q.len > s0 + SEG);
-  g.dspill = g.dips.filter((q) => q.s + q.len > s0 + SEG);
-  g.wspill = g.walls.filter((q) => q.s + q.len > s0 + SEG);
-  g.wspill2 = g.walls.filter((q) => q.s + q.len > s0 + 2 * SEG);
-  if (kind === 'bend' || kind === 'bendc') {   // guide lights along both edges so the bend reads from far away
-    for (let s = s0 + 3; s < s0 + SEG; s += 7) for (const side of [-1, 1]) g.posts.push({ x: ND.C(s) + side * (HALF + 0.9), s, c: side > 0 ? 0 : 1 });
-  }
-  for (const side of [-1, 1]) {
-    for (let i = 0; i < 4; i++) {
-      const s = s0 + i * (SEG / 4) + r() * 8;
-      g.bld.push({
-        x: ND.C(s) + side * (33 + r() * 13), s,
-        w: 10 + r() * 10, d: 12 + r() * 8, h: 28 + r() * 62,
-        tint: Math.floor(r() * 4), sign: r() < 0.55 ? (r() < 0.5 ? 0 : 1) : -1, signH: r()
-      });
-    }
-  }
-  return g;
-}
-function seg(k) {
-  let g = segCache.get(k);
-  if (!g) {
-    g = gen(k); segCache.set(k, g);
-    if (segCache.size > 60) segCache.delete(segCache.keys().next().value);
-  }
-  return g;
-}
-ND.seg = seg;
-
-/* ---------- height field ---------- */
-function base(x, s) {
-  const xr = x - ND.C(s);
-  let h = -SLOPE * s + 1.1 * Math.sin(s * 0.045) + 0.7 * Math.sin(s * 0.11 + xr * 0.05);
-  const ax = Math.abs(xr);
-  if (ax > HALF) h += 3.2 * (1 - Math.exp(-(ax - HALF) * 0.5));
-  else h += 0.004 * xr * xr;
-  return h;
-}
-function rampAdd(r, x, s) {
-  const t = (s - r.s) / r.len;
-  if (t < 0 || t > 1) return 0;
-  const f = Math.max(0, Math.min(1, (r.w / 2 - Math.abs(x - r.x)) / 1.2));
-  return r.h * Math.pow(t, r.p || 1.6) * f;
-}
-function dipOne(d, x, s) {
-  const t = (s - d.s) / d.len;
-  if (t <= 0 || t >= 1) return 0;
-  const T0 = d.t0;
-  const f = t < T0 ? 0.5 - 0.5 * Math.cos(Math.PI * t / T0) : 0.5 + 0.5 * Math.cos(Math.PI * (t - T0) / (1 - T0));
-  return d.d * f * sm((d.w / 2 - Math.abs(x - d.x)) / 5);
-}
-function dipAt(x, s) {
-  const k = Math.floor(s / SEG);
-  let v = 0;
-  const a = seg(k).dips, b = seg(k - 1).dspill;
-  for (let i = 0; i < a.length; i++) v += dipOne(a[i], x, s);
-  for (let i = 0; i < b.length; i++) v += dipOne(b[i], x, s);
-  return v;
-}
-// quarterpipe wall along the edge of the course: a circular transition rising to a near-vertical lip, then a flat deck
-function wallOne(w, x, s) {
-  if (s <= w.s || s >= w.s + w.len) return 0;
-  const xr = x - ND.C(s);
-  if (xr * w.side <= 0) return 0;
-  const a = xr * w.side, f = sm((s - w.s) / 10) * sm((w.s + w.len - s) / 10);
-  if (f <= 0 || a <= w.toe) return 0;
-  const q = Math.min(0.975, (a - w.toe) / (w.lip - w.toe));
-  return w.H * f * (1 - Math.sqrt(1 - q * q));
-}
-function wallSum(x, s) {
-  const k = Math.floor(s / SEG);
-  let h = 0;
-  for (let j = 0; j < 4; j++) {            // a wall can start up to three segments back
-    const a = seg(k - j).walls;
-    for (let i = 0; i < a.length; i++) h += wallOne(a[i], x, s);
-  }
-  return h;
-}
-ND.wallSum = wallSum;
-// is the rider on (or at the lip of) a mega quarterpipe? gives the launch strength and which side the wall is on
-ND.megaAt = (x, s) => {
-  const k = Math.floor(s / SEG), sg = seg(k);
-  for (const r of sg.ramps) if (r.mega && s >= r.s && s <= r.s + r.len + 3 && Math.abs(x - r.x) < r.w / 2 + 1) return { cap: MEGA_CAP, side: 0 };
-  const ws = sg.walls.concat(seg(k - 1).walls, seg(k - 2).walls, seg(k - 3).walls), xr = x - ND.C(s);
-  for (const w of ws) if (xr * w.side > w.toe && s >= w.s + 1 && s <= w.s + w.len - 1) return { cap: MEGA_CAP + 3, side: w.side };
-  return null;
-};
-function rampSum(x, s) {
-  const a = seg(Math.floor(s / SEG)).ramps;
-  let h = 0;
-  for (let i = 0; i < a.length; i++) h += rampAdd(a[i], x, s);
-  return h;
-}
-ND.base = base;
-ND.dipAt = dipAt;
-// how much the landing slope drops (+) or climbs (-) per metre of travel right here
-ND.bowlDown = (x, s) => dipAt(x, s + 1) - dipAt(x, s);
-ND.H = function (x, s) { return base(x, s) - dipAt(x, s) + rampSum(x, s) + wallSum(x, s); };
-ND.blocksNear = (s) => seg(Math.floor(s / SEG)).blocks;
-ND.railsNear = (s) => {
-  const k = Math.floor(s / SEG), a = seg(k).rails, sp = seg(k - 1).spill;
-  return sp.length ? sp.concat(a) : a;
-};
-ND.railX = (rail, s) => {
-  if (rail.x1 === rail.x) return rail.x;
-  const t = (s - rail.s) / rail.len;
-  return rail.x + (rail.x1 - rail.x) * (t < 0 ? 0 : t > 1 ? 1 : t);
-};
-ND.railY = (rail, s) => {
-  const t = (s - rail.s) / rail.len;
-  let y = base(ND.railX(rail, s), s) + rail.h + (rail.h1 - rail.h) * (t < 0 ? 0 : t > 1 ? 1 : t);
-  if (rail.inc) { const u = (s - (rail.s + rail.len - rail.inc)) / rail.inc; if (u > 0) y += rail.rise * Math.pow(Math.min(1, u), 1.4); }
-  return y;
-};
+// the rest of the game still reads the course through ND
+Object.assign(ND, { SEG, HALF, SLOPE, C, kindAt, seg, base, dipAt, wallSum, megaAt, bowlDown, H, blocksNear, railsNear, railX, railY });
 
 /* ---------- textures ---------- */
-function canvasTex(w, h, draw, repeat) {
+function canvasTex(w: number, h: number, draw: Draw2D, repeat?: boolean): THREE.CanvasTexture {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
-  draw(c.getContext('2d'), w, h);
+  draw(c.getContext('2d') as CanvasRenderingContext2D, w, h);
   const t = new THREE.CanvasTexture(c);
   t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestMipmapLinearFilter;
   if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; }
@@ -309,7 +53,7 @@ const mSign = [new THREE.MeshBasicMaterial({ color: 0xff3fd0 }), new THREE.MeshB
 const mSignBack = new THREE.MeshBasicMaterial({ color: 0x0a0618 });
 
 /* ---------- chunk meshes ---------- */
-function buildTerrain(k) {
+function buildTerrain(k: number): THREE.Mesh {
   const fine = seg(k).walls.length || seg(k - 1).walls.length || seg(k - 2).walls.length || seg(k - 3).walls.length;
   const NX = fine ? 100 : 50, NS = 70, W = 100, s0 = k * SEG;
   // lattice follows the bending path, snapped to the 2 m grid so neighbouring chunks line up
@@ -324,7 +68,7 @@ function buildTerrain(k) {
       const x = cxm - W / 2 + i * (W / NX);
       const dp = dipAt(x, s), rp = rampSum(x, s), wp = wallSum(x, s), y = base(x, s) - dp + rp + wp;
       const ax = Math.abs(x - cs), hv = hash(i * 31 + j * 17 + k * 7);
-      let r, gg, b;
+      let r: number, gg: number, b: number;
       if (wp > 0.03 && ax <= HALF) {                           // quarterpipe wall: dark face with neon bands, bright coping at the lip
         const stripe = Math.floor(s / 4) % 2, hi = wp > 5.6;
         if (hi) { r = 0.3; gg = 1.0; b = 1.0; } else if (stripe) { r = 0.55; gg = 0.12; b = 0.75; } else { r = 0.1; gg = 0.2; b = 0.55; }
@@ -344,7 +88,7 @@ function buildTerrain(k) {
       UV[u++] = x / 8 + 0.5; UV[u++] = s / 8;
     }
   }
-  const idx = [];
+  const idx: number[] = [];
   for (let j = 0; j < NS; j++) for (let i = 0; i < NX; i++) {
     const a = j * (NX + 1) + i, b2 = a + 1, c = a + NX + 1, d = c + 1;
     idx.push(a, b2, c, b2, d, c);
@@ -362,7 +106,7 @@ const mWinDark = new THREE.MeshBasicMaterial({ color: 0x05020f });
 const mWinGlow = new THREE.MeshBasicMaterial({ color: 0x7dff4a });
 const mWinPink = new THREE.MeshBasicMaterial({ color: 0xff3fd0 });
 const mWinCyan = new THREE.MeshBasicMaterial({ color: 0x2ff0ff });
-function addRailClassic(group, rail) {
+function addRailClassic(group: THREE.Object3D, rail: Rail): void {
   const step = 2, wd = [0.3, 0.36, 0.42, 0.46][rail.tier];
   for (let s = rail.s; s < rail.s + rail.len; s += step) {
     const x0 = ND.railX(rail, s), x1 = ND.railX(rail, s + step), y0 = ND.railY(rail, s), y1 = ND.railY(rail, s + step);
@@ -386,19 +130,19 @@ function addRailClassic(group, rail) {
 }
 // ---- rail looks (ND.RAIL_STYLE: 0 classic, 1 neon tube, 2 industrial pipe, 3 hover light-rail, 4 truss girder, 5 lacquer beam) ----
 const TIERC = [0xff3fd0, 0x2ff0ff, 0xffd23f, 0x7dff4a];
-const mk = (c, add, op) => new THREE.MeshBasicMaterial(add ? { color: c, transparent: true, opacity: op || 0.3, blending: THREE.AdditiveBlending, depthWrite: false } : { color: c });
-const RM = {};
-const rm = (k, c, add, op) => RM[k] || (RM[k] = mk(c, add, op));
-const cylZ = (r, len, n) => new THREE.CylinderGeometry(r, r, len, n || 8).rotateX(Math.PI / 2);
-function placeBetween(group, geo, mat, x0, y0, z0, x1, y1, z1) {
+const mk = (c: number, add?: boolean, op?: number) => new THREE.MeshBasicMaterial(add ? { color: c, transparent: true, opacity: op || 0.3, blending: THREE.AdditiveBlending, depthWrite: false } : { color: c });
+const RM: Record<string, THREE.MeshBasicMaterial> = {};
+const rm = (k: string, c: number, add?: boolean, op?: number) => RM[k] || (RM[k] = mk(c, add, op));
+const cylZ = (r: number, len: number, n?: number) => new THREE.CylinderGeometry(r, r, len, n || 8).rotateX(Math.PI / 2);
+function placeBetween(group: THREE.Object3D, geo: THREE.BufferGeometry, mat: Mat, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): AnyMesh {
   const m = new THREE.Mesh(geo, mat); m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); m.lookAt(x1, y1, z1); group.add(m); return m;
 }
 // fold a temporary group of small meshes into one mesh per material (rails are hundreds of pieces)
-function mergeInto(target, tmp) {
-  const by = new Map();
-  tmp.children.forEach((m) => {
+function mergeInto(target: THREE.Object3D, tmp: THREE.Group): void {
+  const by = new Map<Mat, { p: number[]; i: number[]; n: number }>();
+  (tmp.children as AnyMesh[]).forEach((m) => {
     m.updateMatrix(); const g = m.geometry.clone(); g.applyMatrix4(m.matrix);
-    const e = by.get(m.material) || { p: [], i: [], n: 0 }, pos = g.attributes.position.array, idx = g.index.array;
+    const e = by.get(m.material) || { p: [], i: [], n: 0 }, pos = g.attributes.position.array, idx = (g.index as THREE.BufferAttribute).array;
     for (let k = 0; k < pos.length; k++) e.p.push(pos[k]);
     for (let k = 0; k < idx.length; k++) e.i.push(idx[k] + e.n);
     e.n += pos.length / 3; by.set(m.material, e); g.dispose(); m.geometry.dispose();
@@ -410,13 +154,12 @@ function mergeInto(target, tmp) {
     geo.computeBoundingSphere(); target.add(new THREE.Mesh(geo, mat));
   });
 }
-function addRail(realGroup, rail) {
+function addRail(realGroup: THREE.Object3D, rail: Rail): void {
   // rail look follows the district it sits in (ND.RAIL_STYLE overrides for previews)
   const style = ND.RAIL_STYLE != null ? ND.RAIL_STYLE : (ND.city && ND.city.railStyle ? ND.city.railStyle(rail.s) : 0);
   const wing = () => { if (rail.win) addWindowWing(realGroup, rail); };
   if (style === 0) { addRailClassic(realGroup, rail); wing(); return; }
   const group = new THREE.Group(), tc = TIERC[rail.tier], T = rail.tier, step = 2;
-  const top = (px, s) => ND.railY(px, s);
   // main line, 2 m pieces following the rail's slope and sideways drift
   for (let s = rail.s; s < rail.s + rail.len; s += step) {
     const x0 = ND.railX(rail, s), x1 = ND.railX(rail, s + step), y0 = ND.railY(rail, s), y1 = ND.railY(rail, s + step), z0 = -s, z1 = -(s + step), len = Math.hypot(x1 - x0, y1 - y0, step) + 0.08;
@@ -434,7 +177,7 @@ function addRail(realGroup, rail) {
       const cm = placeBetween(group, new THREE.BoxGeometry(0.6, 0.04, 0.12), rm('hc', 0xffffff), x0, y0 + 0.02, z0 - 0.6, x1, y1 + 0.02, z1 - 0.6);
       cm.rotateY(0.6); placeBetween(group, new THREE.BoxGeometry(0.6, 0.04, 0.12), rm('hc', 0xffffff), x0, y0 + 0.02, z0 - 1.1, x1, y1 + 0.02, z1 - 1.1).rotateY(-0.6);
     } else if (style === 4) {     // truss girder: neon top chord, lower chord, zig-zag struts
-      const dh = 0.95, sx = (x0 + x1) / 2, sy = (y0 + y1) / 2;
+      const dh = 0.95;
       placeBetween(group, cylZ(0.11, len, 6), rm('tc' + T, tc), x0, y0 - 0.12, z0, x1, y1 - 0.12, z1);
       placeBetween(group, cylZ(0.08, len, 6), rm('gs', 0x3a3d66), x0, y0 - dh, z0, x1, y1 - dh, z1);
       const up = (Math.round((s - rail.s) / step) % 2) === 0;
@@ -474,8 +217,8 @@ function addRail(realGroup, rail) {
   mergeInto(realGroup, group); wing();
 }
 // a tower block at the edge of the course with a neon-trimmed window the rail comes out of
-function addWindowWing(group, rail) {
-  const side = rail.win, cs = ND.C(rail.s), face = cs + side * (HALF + 0.9), wingW = 12, wingD = 20;
+function addWindowWing(group: THREE.Object3D, rail: Rail): void {
+  const side = rail.win as -1 | 1, cs = ND.C(rail.s), face = cs + side * (HALF + 0.9), wingW = 12, wingD = 20;
   const yR = ND.railY(rail, rail.s), s0 = rail.s - 2, ymin = base(face, s0) - 6, hTop = yR + 14 - ymin;
   const wgeo = new THREE.BoxGeometry(wingW, hTop, wingD), uv = wgeo.attributes.uv;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * wingD / 10, uv.getY(i) * hTop / 14);
@@ -485,7 +228,7 @@ function addWindowWing(group, rail) {
   const wy = yR + 0.2, wz = -(rail.s + 0.5), px = face - side * 0.08;
   const pane = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 4.2), mWinDark);
   pane.rotation.y = -side * Math.PI / 2; pane.position.set(px, wy, wz); group.add(pane);
-  const fr = (w, h, dx, dy, mat) => { const f = new THREE.Mesh(new THREE.BoxGeometry(0.25, h, w), mat); f.position.set(px - side * 0.1, wy + dy, wz + dx); group.add(f); };
+  const fr = (w: number, h: number, dx: number, dy: number, mat: Mat) => { const f = new THREE.Mesh(new THREE.BoxGeometry(0.25, h, w), mat); f.position.set(px - side * 0.1, wy + dy, wz + dx); group.add(f); };
   fr(5.8, 0.28, 0, 2.2, mWinGlow); fr(5.8, 0.28, 0, -2.2, mWinGlow); fr(0.28, 4.7, 2.8, 0, mWinPink); fr(0.28, 4.7, -2.8, 0, mWinPink);
   // vertical neon trim up the corner of the block and a roof line
   for (const dz of [-wingD / 2 + 6, wingD / 2 + 6]) {
@@ -499,7 +242,7 @@ function addWindowWing(group, rail) {
     bar.position.set(face - side * 0.1, wy + 2.6 + i * 2.6, -(rail.s + 6)); group.add(bar);
   }
 }
-function addBlock(group, b) {
+function addBlock(group: THREE.Object3D, b: Block): void {
   const gy = ND.H(b.x, b.s);
   if (b.kind === 'barrier') {
     const m = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), mBarrier);
@@ -513,7 +256,7 @@ function addBlock(group, b) {
     t.position.set(b.x, gy + b.h - 0.4, -b.s); group.add(t);
   }
 }
-function addBuilding(group, b) {
+function addBuilding(group: THREE.Object3D, b: Building): void {
   const geo = new THREE.BoxGeometry(b.w, b.h, b.d);
   const uv = geo.attributes.uv, sc = Math.max(b.w, b.d) / 10, sv = b.h / 14;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * sc, uv.getY(i) * sv);
@@ -532,7 +275,7 @@ function addBuilding(group, b) {
   }
 }
 
-function buildChunk(k) {
+function buildChunk(k: number): THREE.Group {
   const g = seg(k), group = new THREE.Group();
   group.add(buildTerrain(k));
   g.rails.forEach((r) => addRail(group, r));
@@ -546,23 +289,25 @@ function buildChunk(k) {
 }
 
 /* ---------- streaming ---------- */
-const active = new Map();
-ND.world = {
-  scene: null,
-  init(scene) { this.scene = scene; this.clear(); },
+const active = new Map<number, THREE.Group>();
+export const world = {
+  scene: null as THREE.Scene | null,
+  init(scene: THREE.Scene): void { this.scene = scene; this.clear(); },
   /* swap in a short repeating course (tutorial) or go back to the normal hill with null */
-  setPlan(fn) { plan = fn || null; infos.length = 0; segCache.clear(); lastDir = 1; this.clear(); },
-  clear() {
+  setPlan(fn: CoursePlan | null | undefined): void { setCoursePlan(fn); this.clear(); },
+  clear(): void {
     active.forEach((grp) => this.drop(grp));
     active.clear();
   },
-  drop(grp) {
-    this.scene.remove(grp);
-    grp.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+  drop(grp: THREE.Group): void {
+    this.scene?.remove(grp);
+    grp.traverse((o) => { const g = (o as THREE.Mesh).geometry; if (g) g.dispose(); });
   },
-  update(s) {
+  update(s: number): void {
     const k = Math.floor(s / SEG), lo = k - 1, hi = k + 3;
-    for (let i = lo; i <= hi; i++) if (!active.has(i)) { const grp = buildChunk(i); active.set(i, grp); this.scene.add(grp); }
+    for (let i = lo; i <= hi; i++) if (!active.has(i)) { const grp = buildChunk(i); active.set(i, grp); this.scene?.add(grp); }
     active.forEach((grp, i) => { if (i < lo || i > hi) { this.drop(grp); active.delete(i); } });
   }
 };
+
+ND.world = world;

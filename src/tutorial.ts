@@ -1,4 +1,4 @@
-// @ts-nocheck -- ported as-is from index.html; typed step by step
+// @ts-nocheck -- ported as-is from the single-file build; not strictly typed yet (see docs/structure.md)
 
 /* CYBERSLIDE - tutorial: short practice courses that teach by doing.
    Each chapter is a little repeating course (see ND.world.setPlan) plus a list of steps. A step is finished by a player event

@@ -1,4 +1,4 @@
-// @ts-nocheck -- ported as-is from index.html; typed step by step
+// @ts-nocheck -- ported as-is from the single-file build; not strictly typed yet (see docs/structure.md)
 
 /* CYBERSLIDE - riders: four detailed rider models (blocky PS2 style) with idle animations, and their stats */
 

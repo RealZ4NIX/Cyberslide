@@ -1,4 +1,4 @@
-// @ts-nocheck -- ported as-is from index.html; typed step by step
+// @ts-nocheck -- ported as-is from the single-file build; not strictly typed yet (see docs/structure.md)
 
 /* CYBERSLIDE - player: model, physics, tricks, grinds, combo scoring */
 

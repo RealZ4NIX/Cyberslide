@@ -1,5 +1,3 @@
-// @ts-nocheck -- ported as-is from index.html; typed step by step
-
 /* CYBERSLIDE - trick list: flip tricks (A), grab tricks (D) and specials.
    seq: arrow inputs tapped before the button, U D L R and diagonals UL UR DL DR (empty = button alone)
    b: board turns [nose-over-tail, spin, roll]; yaw/flip: whole-rider turns (landing must match); by: upper-body spin
@@ -7,11 +5,53 @@
 
 import { ND } from './nd';
 
-const L = [];
-const add = (btn, name, seq, pts, o) => L.push(Object.assign({ btn, name, seq: seq ? seq.split(' ') : [], pts, dur: 0.55, sp: false }, o));
-const A = (n, s, p, o) => add('A', n, s, p, o);
-const D = (n, s, p, o) => add('D', n, s, p, o);
-const S = (b, n, s, p, o) => add(b, n, s, p, Object.assign({ sp: true, dur: 0.7 }, o));
+export type TrickButton = 'A' | 'D';
+export type Dir = 'U' | 'D' | 'L' | 'R' | 'UL' | 'UR' | 'DL' | 'DR';
+/** [board lift, nose tilt, roll, near arm, far arm, body drop] */
+export type Pose = [number, number, number, number, number, number];
+
+export interface TrickShape {
+  /** board turns [nose-over-tail, spin, roll] */
+  b?: [number, number, number];
+  /** upper-body spin (turns) */
+  by?: number;
+  /** whole-rider spin (turns); the landing must match */
+  yaw?: number;
+  /** whole-rider flip (turns, + back, - front) */
+  flip?: number;
+  lift?: number;
+  p?: Pose;
+  /** how long the trick takes (s) */
+  dur?: number;
+}
+
+export interface Trick extends TrickShape {
+  btn: TrickButton;
+  name: string;
+  seq: Dir[];
+  pts: number;
+  dur: number;
+  sp: boolean;
+}
+
+const L: Trick[] = [];
+const add = (
+  btn: TrickButton,
+  name: string,
+  seq: string,
+  pts: number,
+  o: TrickShape & { sp?: boolean },
+) =>
+  L.push(
+    Object.assign(
+      { btn, name, seq: (seq ? seq.split(' ') : []) as Dir[], pts, dur: 0.55, sp: false },
+      o,
+    ),
+  );
+const A = (n: string, s: string, p: number, o: TrickShape) => add('A', n, s, p, o);
+const D = (n: string, s: string, p: number, o: TrickShape) => add('D', n, s, p, o);
+const S = (b: TrickButton, n: string, s: string, p: number, o: TrickShape) =>
+  add(b, n, s, p, Object.assign({ sp: true, dur: 0.7 }, o));
 
 /* ---- flip tricks (A) ---- */
 A('Shove-It', '', 80, { b: [0, 0.5, 0], dur: 0.4 });
@@ -30,10 +70,14 @@ A('360 Flip', 'DL DL', 300, { b: [0, 1, 1], dur: 0.6 });
 A('Inward Heelflip', 'DL', 260, { b: [0, -0.5, -1], dur: 0.55 });
 A('Front Foot Impossible', 'DR', 280, { b: [1, 0, 1], dur: 0.6 });
 A('Kickflip to Indy', 'UR UR', 300, { b: [0, 0, 1], p: [0.5, 0, 0, -0.15, 1.1, -0.12], dur: 0.6 });
-A('Heelflip Varial Lien', 'L L', 320, { b: [0, 0.5, -1], p: [0.4, -0.5, 0, -0.4, 1.0, -0.1], dur: 0.6 });
+A('Heelflip Varial Lien', 'L L', 320, {
+  b: [0, 0.5, -1],
+  p: [0.4, -0.5, 0, -0.4, 1.0, -0.1],
+  dur: 0.6,
+});
 
 /* ---- grab tricks (D) ---- */
-const G = (n, s, p, pose) => D(n, s, p, { p: pose, dur: 0.6 });
+const G = (n: string, s: string, p: number, pose: Pose) => D(n, s, p, { p: pose, dur: 0.6 });
 G('Mute', '', 80, [0.45, 0, 0, -0.15, 1.1, -0.12]);
 G('Melon', 'L', 100, [0.5, 0, -0.3, -0.15, 1.1, -0.1]);
 G('Stalefish', 'DR', 130, [0.55, 0, 0.35, -0.1, 1.15, -0.12]);
@@ -65,9 +109,17 @@ S('A', 'Kickflip Mc Twist', 'D L', 1100, { b: [0, 0, 1], yaw: 1.5, flip: 1, dur:
 S('A', 'Triple Heelflip', 'U R', 900, { b: [0, 0, -3] });
 S('A', 'Half Flip Casper', 'R L', 1000, { b: [0, 0.5, 1], p: [0.7, 0.3, 0, -0.3, 1.0, -0.2] });
 S('A', 'Hospital Flip', 'L R', 1000, { b: [1, 0, 1], p: [0.4, 0, 0, -1.2, 1.2, -0.2] });
-S('A', 'Kickflip 1 Foot Tail', 'L U', 1100, { b: [0, 0, 1], p: [0.6, 0.6, 0, -0.2, 1.4, -0.1], dur: 0.8 });
+S('A', 'Kickflip 1 Foot Tail', 'L U', 1100, {
+  b: [0, 0, 1],
+  p: [0.6, 0.6, 0, -0.2, 1.4, -0.1],
+  dur: 0.8,
+});
 S('A', 'Ghetto Bird', 'D U', 1200, { b: [0, 1, 2], dur: 0.8 });
-S('A', 'Does W. a Spider Can', 'L D', 1800, { b: [0, 0, 2], p: [0.5, 0, 0, -2.2, 2.2, -0.35], dur: 0.8 });
+S('A', 'Does W. a Spider Can', 'L D', 1800, {
+  b: [0, 0, 2],
+  p: [0.5, 0, 0, -2.2, 2.2, -0.35],
+  dur: 0.8,
+});
 
 /* ---- specials: grab based (D) ---- */
 S('D', 'Fingerflip Airwalk', 'L R', 1000, { b: [0, 0, 1], p: [0.4, 0, 0, -0.9, 0.9, -0.1] });
@@ -86,15 +138,41 @@ S('D', 'Salute!!!', 'L D', 1600, { p: [0.4, 0, 0, -0.2, -2.8, -0.1], dur: 0.8 })
 S('D', 'Spidey Flip', 'UL UR', 1800, { flip: 1, p: [0.5, 0, 0, -2.2, 2.2, -0.3], dur: 0.9 });
 S('D', 'Double Splits', 'DR DL', 1800, { p: [0.6, 0, 0, -1.6, 1.6, -0.45], dur: 0.8 });
 
-// harder tricks pay disproportionately more; specials pay the most
-L.forEach((t) => { t.pts = Math.round(t.pts * (t.sp ? 4.5 : t.pts >= 250 ? 3 : 2) / 10) * 10; });
-ND.TRICKS = L;
-ND.TRICK_BY_KEY = {};
-L.forEach((t) => { ND.TRICK_BY_KEY[t.btn + '|' + t.seq.join(' ')] = t; });
-const GLYPH = { U: '\u2191', D: '\u2193', L: '\u2190', R: '\u2192', UL: '\u2196', UR: '\u2197', DL: '\u2199', DR: '\u2198' };
-ND.trickInput = (t) => {
+/** harder tricks pay disproportionately more; specials pay the most */
+export const scalePoints = (base: number, special: boolean): number =>
+  Math.round((base * (special ? 4.5 : base >= 250 ? 3 : 2)) / 10) * 10;
+L.forEach((t) => {
+  t.pts = scalePoints(t.pts, t.sp);
+});
+
+export const TRICKS: readonly Trick[] = L;
+export const trickKey = (btn: TrickButton, seq: readonly Dir[]): string =>
+  btn + '|' + seq.join(' ');
+export const TRICK_BY_KEY: Record<string, Trick> = {};
+L.forEach((t) => {
+  TRICK_BY_KEY[trickKey(t.btn, t.seq)] = t;
+});
+
+export const GLYPH: Record<Dir, string> = {
+  U: '↑',
+  D: '↓',
+  L: '←',
+  R: '→',
+  UL: '↖',
+  UR: '↗',
+  DL: '↙',
+  DR: '↘',
+};
+
+/** how to do a trick, e.g. "← + FLIP" (button label comes from the player's key bindings when the game has set them) */
+export const trickInput = (t: Pick<Trick, 'btn' | 'seq'>): string => {
   const g = t.seq.map((k) => GLYPH[k]).join(' ');
-  const b = ND.btnLabel ? ND.btnLabel(t.btn) : t.btn;   // shows the key the player has bound to flip / grab
+  const label: ((b: TrickButton) => string) | undefined = ND.btnLabel;
+  const b = label ? label(t.btn) : t.btn;
   if (!t.seq.length) return b + ' alone';
   return ND.TRICK_INPUT === 'hold' ? b + ' + ' + g : g + ' + ' + b;
 };
+
+ND.TRICKS = TRICKS;
+ND.TRICK_BY_KEY = TRICK_BY_KEY;
+ND.trickInput = trickInput;
