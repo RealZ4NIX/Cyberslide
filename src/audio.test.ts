@@ -3,7 +3,13 @@ import { audio, BPM, mtof, S16, type SfxName } from './audio';
 
 /* A stand-in WebAudio context: every node accepts any call, and we record what got created and started. */
 function fakeAudio() {
-  const log = { created: [] as string[], started: 0, ramps: [] as number[] };
+  const log = {
+    created: [] as string[],
+    started: 0,
+    ramps: [] as number[],
+    starts: [] as number[],
+    ctx: null as { currentTime: number } | null,
+  };
   const param = () => ({
     value: 0,
     setValueAtTime: vi.fn(),
@@ -29,11 +35,17 @@ function fakeAudio() {
       attack: param(),
       release: param(),
       connect: vi.fn(),
-      start: () => log.started++,
+      start: (t?: number) => {
+        log.started++;
+        log.starts.push(t ?? 0);
+      },
       stop: vi.fn(),
     };
   };
   class Ctx {
+    constructor() {
+      log.ctx = this;
+    }
     state = 'running';
     currentTime = 1;
     sampleRate = 8000;
@@ -151,6 +163,23 @@ describe('with an audio context', () => {
     const after = log.started;
     vi.advanceTimersByTime(500);
     expect(log.started).toBe(after);
+    vi.useRealTimers();
+  });
+  it('skips the notes it missed while the timer was held up instead of playing them all at once', () => {
+    vi.useFakeTimers();
+    const ctx = log.ctx as { currentTime: number };
+    const b0 = log.started;
+    audio.startMusic();
+    vi.advanceTimersByTime(60);
+    const normal = log.started - b0; // notes in a normal quarter second of lookahead
+    ctx.currentTime += 3; // a background tab or a locked phone: 3 s with no timer ticks
+    log.starts.length = 0;
+    const before = log.started;
+    vi.advanceTimersByTime(50);
+    expect(log.started - before).toBeGreaterThan(0); // the music carries on
+    expect(log.started - before).toBeLessThan(normal * 3); // just the next quarter second, not 3 s of notes
+    expect(Math.min(...log.starts.filter((t) => t > 0))).toBeGreaterThanOrEqual(ctx.currentTime); // nothing in the past
+    audio.stopMusic();
     vi.useRealTimers();
   });
 });

@@ -335,7 +335,15 @@ function schedule(i: number, t: number): void {
         voice(mtof(ch.root + 12 + semi + (alt && ls >= 10 ? 12 : 0)), t, S16 * len * 1.2, 0.07);
 }
 function tick(): void {
-  while (nextT < ac().currentTime + 0.25) {
+  const now = ac().currentTime;
+  // the timer was held up (background tab, locked phone, a long hitch): skip the steps whose time has passed
+  // instead of playing them all at once, and stay on the beat grid
+  if (nextT < now) {
+    const missed = Math.ceil((now - nextT) / S16);
+    nextT += missed * S16;
+    step += missed;
+  }
+  while (nextT < now + 0.25) {
     schedule(step, nextT);
     nextT += S16;
     step++;

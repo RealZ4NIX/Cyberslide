@@ -206,7 +206,7 @@ export function boot(): void {
       if (optOpen) { if (e.code === 'Escape') closeOptions(); }
       else if (trOpen) { if (e.code === 'Escape') closeTricks(); }
       else if (boardOpen) { if (e.code === 'Escape') closeBoard(); }
-      else if (state === 'play') { if (mpMenu) resume(); else pause(); } else if (state === 'pause') resume(); else if (state === 'tutdone') toMenu();
+      else if (running()) { if (mpMenu) resume(); else pause(); } else if (state === 'pause') resume(); else if (state === 'tutdone') toMenu();
       else if (state === 'link' && e.code === 'Escape') linkBack();
     }
     else if ((e.code === 'Enter' || e.code === 'NumpadEnter') && state === 'play' && mode === 'tutorial') { e.preventDefault(); ND.tutorial.skipStep(); }
@@ -216,10 +216,10 @@ export function boot(): void {
     else if (state === 'menu') { if (e.code === 'Digit1') startRun('timed'); else if (e.code === 'Digit2') startRun('endless'); }
   });
   addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) inp[k] = false; if (e.code === 'Space') { swallowSpace = false; if (navName) e.preventDefault(); } });
-  addEventListener('blur', () => { for (const k in inp) inp[k] = false; if (state === 'play' && !mpMenu) pause(); });
+  addEventListener('blur', () => { for (const k in inp) inp[k] = false; if (running() && !mpMenu) pause(); });
 
   /* ---------- touch screen (touch.ts): a finger switches the game to touch controls, a mouse click switches back ---------- */
-  const touch = createTouchControls($('game'), () => { if (state === 'play' && !navName) pause(); });
+  const touch = createTouchControls($('game'), () => { if (running() && !navName) pause(); });
   addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'touch' || e.pointerType === 'pen') setDevice('touch');
     else if (e.pointerType === 'mouse' && dev === 'touch') setDevice('kb');
@@ -241,7 +241,7 @@ export function boot(): void {
     fitUi();
     const port = dev === 'touch' && innerHeight > innerWidth * 1.05;
     document.body.classList.toggle('portrait', port);
-    if (port && state === 'play' && !navName) pause();
+    if (port && running() && !navName) pause();
   }
   addEventListener('resize', checkOrient);
   /* phones that allow it (Android) go fullscreen in landscape when a run starts; iPhones ignore this and keep the browser bars */
@@ -310,7 +310,7 @@ export function boot(): void {
     padBadge.hidden = on;
     padNote(on ? PADK.label + ' CONNECTED' : 'CONTROLLER DISCONNECTED');
     if (on) { setDevice('pad'); refreshKeyLabels(); if (optOpen) buildOptions(); }   // refresh even if already on 'pad': a different pad may show different glyphs
-    else { setDevice('kb'); if (state === 'play' && !mpMenu) pause(); if (optOpen) buildOptions(); }
+    else { setDevice('kb'); if (running() && !mpMenu) pause(); if (optOpen) buildOptions(); }
   }
   /* haptics */
   function padRumble(n, d) {
@@ -357,7 +357,7 @@ export function boot(): void {
   }
   function padPauseBtn() {
     if (optOpen || trOpen || boardOpen) return;
-    if (state === 'play') { if (mpMenu) resume(); else pause(); } else if (state === 'pause') resume(); else if (state === 'tutdone') toMenu();
+    if (running()) { if (mpMenu) resume(); else pause(); } else if (state === 'pause') resume(); else if (state === 'tutdone') toMenu();
   }
   function padSecret(tok) { if (secretReady() && skellyPad.push(tok, performance.now())) unlockSecret(); }
   function padMenu(dt) {
@@ -729,6 +729,11 @@ export function boot(): void {
   /* ---------- game flow ---------- */
   // dev server only: ?runlen=20 makes a 2 min run 20 s, for testing the end of a run (a production build always uses 120)
   const RUN_LEN = (import.meta.env.DEV && +new URLSearchParams(location.search).get('runlen')) || 120;
+  /* a run is under way: riding, or still in the 3-2-1 before the drop (both can be paused) */
+  function running() { return state === 'play' || state === 'countdown'; }
+  let pauseFrom = 'play';   // where RESUME goes back to: the ride, or the countdown it was paused in
+  /* the countdown camera (higher, tilted into the slope) also holds while a countdown is paused */
+  const inCountdown = () => state === 'countdown' || (pauseFrom === 'countdown' && (state === 'pause' || state === 'confirm'));
   let mode = 'timed', state = 'menu', timeLeft = 120, cd = 0, last = performance.now(), camHead = 0, camY = 0, camLook = 0, camDown = 0;
   const overlays = { menu: $('menu'), pause: $('pause'), result: $('result'), tricks: $('tricks'), confirm: $('confirm'), options: $('options'), entry: $('entry'), board: $('board'), tutdone: $('tutdone'), link: $('link'), lobby: $('lobby'), leave: $('leave') };
   /* ---------- rider select card ---------- */
@@ -954,10 +959,10 @@ export function boot(): void {
     player.distMulti = m === 'timed';   // the distance multiplier is for the 2-minute run (1v1 included); endless and practice don't have it
     lastDm = -1;
     lastP = { x: player.x, y: player.y, s: player.s };
-    timeLeft = RUN_LEN; cd = tut ? 2.6 : net ? net.cd : 3; state = 'countdown'; show(null); cdN = -1; el.big.className = '';
+    timeLeft = RUN_LEN; cd = tut ? 2.6 : net ? net.cd : 3; state = 'countdown'; pauseFrom = 'play'; show(null); cdN = -1; el.big.className = '';
     el.timeLbl.textContent = m === 'timed' ? 'TIME' : 'ENDLESS';
-    el.feed.innerHTML = ''; lastScore = -1; dispScore = 0; failT = 0; slowT = 0; el.fail.className = ''; $('rflash').className = ''; camHead = 0; camLook = 0; camDown = 1; camY = player.y + 3.3 + CD_UP;
-    snapCamera();
+    el.feed.innerHTML = ''; lastScore = -1; dispScore = 0; failT = 0; slowT = 0; el.fail.className = ''; $('rflash').className = '';
+    resetCamera(1);
   }
   function openConfirm() {
     if (mp) return;   // the hill is shared in a 1v1 race: no restarts
@@ -988,14 +993,19 @@ export function boot(): void {
     for (const id of ['btnEnd', 'btnRestart', 'btnMenu']) $(id).hidden = false;
     $('btnQuitLink').hidden = true; setBtn('btnResume', 'RESUME', 'ESC');
     $('pzCrumb').innerHTML = 'Run suspended <b>// paused</b>'; $('pzTitle').textContent = 'PAUSED';
+    pauseFrom = state === 'countdown' ? 'countdown' : 'play';
     state = 'pause'; ND.audio.hush();
     if (mode === 'tutorial') { setBtn('btnEnd', 'SKIP CHAPTER', 'MOVE ON'); setBtn('btnRestart', 'RESTART CHAPTER'); setBtn('btnMenu', 'EXIT TUTORIAL'); }
     else { setBtn('btnEnd', 'END RUN', 'SEE YOUR RESULTS'); setBtn('btnRestart', 'RESTART'); setBtn('btnMenu', 'MAIN MENU'); }
     show('pause');
   }
-  function resume() { if (mpMenu) { mpMenu = false; show(null); return; } state = 'play'; show(null); last = performance.now(); }
+  function resume() {
+    if (mpMenu) { mpMenu = false; show(null); return; }
+    state = state === 'pause' && pauseFrom === 'countdown' ? 'countdown' : 'play';   // a paused countdown carries on where it stopped
+    pauseFrom = 'play'; show(null); last = performance.now();
+  }
   function refreshBests() { $('bestTimed').textContent = fmt(getBest('timed')); $('bestEndless').textContent = fmt(getBest('endless')); }
-  function toMenu() { leaveTutorial(); if (mp || lk) mpLeave(); state = 'menu'; ND.audio.hush(); player.resetAll(); ND.world.clear(); ND.world.update(player.s); ND.pickups.clear(false); el.big.className = ''; show('menu'); refreshBests(); paintTutBtn();
+  function toMenu() { leaveTutorial(); if (mp || lk) mpLeave(); state = 'menu'; ND.audio.hush(); player.resetAll(); resetCamera(0); ND.world.clear(); ND.world.update(player.s); ND.pickups.clear(false); el.big.className = ''; show('menu'); refreshBests(); paintTutBtn();
     if (tutGlow()) { const i = navUnits().findIndex((u) => u.el.id === 'btnTutorial'); if (i >= 0) { navIdx = i; navPaint(false); } }   // first time: the tutorial is the highlighted button
   }
 
@@ -1326,7 +1336,7 @@ export function boot(): void {
   /* ---------- lobby: pick riders, both ready, drop ---------- */
   function openLobby() {
     state = 'link'; ND.audio.hush(); mpMenu = false; rival.hide(); $('hudRival').hidden = true;
-    player.resetAll(); ND.world.clear(); ND.world.update(player.s); ND.pickups.clear(false); el.big.className = '';
+    player.resetAll(); resetCamera(0); ND.world.clear(); ND.world.update(player.s); ND.pickups.clear(false); el.big.className = '';
     if (lk) lk.step = { k: 'open' };
     mpPaintKey = ''; show('lobby');
     if (mp) mp.session.setInfo(meInfo());
@@ -1695,8 +1705,15 @@ export function boot(): void {
     camera.position.set(player.x, player.y + 3.3 + CD_UP * camDown, -player.s + 8);
     camera.lookAt(player.x, player.y - 3 - CD_DOWN * camDown, -player.s - 14);
   }
+  /* the rider was just put back at the top of the hill (new run, menu, lobby): put the camera and the snow there too, so
+     neither has to fly back up from where the last run ended. down = 1 for the countdown view, 0 for the normal one */
+  function resetCamera(down) {
+    camHead = 0; camLook = 0; camLift = 0; camDown = down; camY = player.y + 3.3 + CD_UP * down;
+    lastP = { x: player.x, y: player.y, s: player.s };
+    snapCamera();
+  }
   function updateCamera(dt) {
-    const cdT = state === 'countdown' ? 1 : 0;
+    const cdT = inCountdown() ? 1 : 0;
     camDown += (cdT - camDown) * Math.min(1, dt * (cdT ? 10 : 2.2));
     camHead += (player.heading * 0.6 - camHead) * Math.min(1, dt * 3);
     // lean the view toward where the path is heading so bends can be read early
@@ -1728,16 +1745,20 @@ export function boot(): void {
     sky.position.copy(camera.position);
     sun.position.copy(camera.position).add(sunOff);
   }
+  const SNOW_CLEAR = 5;   // m around the camera with no snowflakes
+  const wrapIn = (v, lo, span) => lo + ((((v - lo) % span) + span) % span);
   function updateSnow(dt) {
     const dx = player.x - lastP.x, dy = player.y - lastP.y, ds = player.s - lastP.s;
     lastP = { x: player.x, y: player.y, s: player.s };
+    const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
     for (let i = 0; i < SN; i++) {
       const r = snowRel[i];
-      r.x -= dx; r.y -= dy + 2.2 * dt; r.z += ds;
-      if (r.z > 22) r.z -= 100; else if (r.z < -78) r.z += 100;
-      if (r.x > 30) r.x -= 60; else if (r.x < -30) r.x += 60;
-      if (r.y < -12) r.y += 40; else if (r.y > 28) r.y -= 40;
-      snowArr[i * 3] = player.x + r.x; snowArr[i * 3 + 1] = player.y + r.y; snowArr[i * 3 + 2] = -player.s + r.z;
+      // wrap inside the box around the rider however far it moved: a new run or the menu puts the rider kilometres back up the hill
+      r.x = wrapIn(r.x - dx, -30, 60); r.y = wrapIn(r.y - dy - 2.2 * dt, -12, 40); r.z = wrapIn(r.z + ds, -78, 100);
+      const x = player.x + r.x, y = player.y + r.y, z = -player.s + r.z;
+      // a flake right in front of the lens would be drawn as a huge white square: it isn't drawn until it has drifted on
+      const near = (x - cx) * (x - cx) + (y - cy) * (y - cy) + (z - cz) * (z - cz) < SNOW_CLEAR * SNOW_CLEAR;
+      snowArr[i * 3] = x; snowArr[i * 3 + 1] = near ? -1e5 : y; snowArr[i * 3 + 2] = z;
     }
     snowGeo.attributes.position.needsUpdate = true;
   }
