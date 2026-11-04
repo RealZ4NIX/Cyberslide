@@ -828,6 +828,7 @@ export function boot(): void {
     if (!tut) { leaveTutorial(); ND.tutorial.markPlayed(); }
     mode = m; player.setRider(tut ? 'nova' : ND.riderId); ND.audio.init(); ND.audio.startMusic(); ND.audio.sfx('start');
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    ND.world.reseed(tut ? 0 : undefined);   // every run (restarts too) gets a brand new hill; the tutorial keeps the fixed one
     if (tut) ND.tutorial.begin(ci || 0);
     player.resetAll(); ND.world.clear(); ND.world.update(player.s); ND.pickups.clear(!tut, m === 'timed');
     if (tut) player.speedCap = ND.tutorial.cap();

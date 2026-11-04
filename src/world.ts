@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { ND } from './nd';
 import {
   SEG, HALF, SLOPE, rng, hash, C, kindAt, seg, base, dipAt, rampSum, wallSum, megaAt, bowlDown, H,
-  blocksNear, railsNear, railX, railY, setCoursePlan,
+  blocksNear, railsNear, railX, railY, setCoursePlan, setRunSeed, randomSeed, districtAt,
 } from './course';
 import type { Rail, Block, Building, CoursePlan } from './course';
 
@@ -15,7 +15,7 @@ type Mat = THREE.Material;
 type AnyMesh = THREE.Mesh<THREE.BufferGeometry, Mat>;
 
 // the rest of the game still reads the course through ND
-Object.assign(ND, { SEG, HALF, SLOPE, C, kindAt, seg, base, dipAt, wallSum, megaAt, bowlDown, H, blocksNear, railsNear, railX, railY });
+Object.assign(ND, { SEG, HALF, SLOPE, C, kindAt, seg, base, dipAt, wallSum, megaAt, bowlDown, H, blocksNear, railsNear, railX, railY, districtAt });
 
 /* ---------- textures ---------- */
 function canvasTex(w: number, h: number, draw: Draw2D, repeat?: boolean): THREE.CanvasTexture {
@@ -295,6 +295,8 @@ export const world = {
   init(scene: THREE.Scene): void { this.scene = scene; this.clear(); },
   /* swap in a short repeating course (tutorial) or go back to the normal hill with null */
   setPlan(fn: CoursePlan | null | undefined): void { setCoursePlan(fn); this.clear(); },
+  /* a new hill: a fresh random one, or the fixed hill with 0 (tutorial) */
+  reseed(seed: number = randomSeed()): void { setRunSeed(seed); this.clear(); },
   clear(): void {
     active.forEach((grp) => this.drop(grp));
     active.clear();

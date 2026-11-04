@@ -7,7 +7,7 @@ import './tricks';
 import './world';
 import './riders';
 import './player';
-import { C, H, kindAt, seg, setCoursePlan } from './course';
+import { C, H, kindAt, seg, setCoursePlan, setRunSeed } from './course';
 import {
   LOW_G,
   pickupKind,
@@ -44,7 +44,12 @@ beforeEach(() => {
   vi.spyOn(Math, 'random').mockReturnValue(0.5);
   ND.riderId = 'nova';
 });
-afterEach(() => setCoursePlan(null));
+afterEach(() => {
+  setCoursePlan(null);
+  setRunSeed(0);
+});
+/** every run rolls a new hill, so placement rules are checked on a few of them */
+const SEEDS = [0, 3, 2024, -55555];
 
 const N = 400;
 function all(): Pickup[] {
@@ -64,41 +69,48 @@ describe('placement', () => {
   });
 
   it('keeps the start clear, track ones common, sky ones rare', () => {
-    setCoursePlan(null);
-    for (let k = 0; k < 3; k++) expect(pickupsAt(k)).toEqual([]);
-    const p = all(),
-      track = p.filter((q) => !q.sky),
-      sky = p.filter((q) => q.sky);
-    expect(track.length / N).toBeGreaterThan(0.4);
-    expect(track.length / N).toBeLessThan(0.75);
-    expect(sky.length / N).toBeGreaterThan(0.04);
-    expect(sky.length).toBeLessThan(track.length / 3);
-    for (const k of ['over', 'x2', 'shield', 'grav', 'time'] as const) {
-      expect(track.some((q) => q.kind === k)).toBe(true);
-      expect(sky.some((q) => q.kind === k)).toBe(true);
+    for (const seed of SEEDS) {
+      setRunSeed(seed);
+      for (let k = 0; k < 3; k++) expect(pickupsAt(k)).toEqual([]);
+      const p = all(),
+        track = p.filter((q) => !q.sky),
+        sky = p.filter((q) => q.sky);
+      expect(track.length / N).toBeGreaterThan(0.4);
+      expect(track.length / N).toBeLessThan(0.75);
+      expect(sky.length / N).toBeGreaterThan(0.04);
+      expect(sky.length).toBeLessThan(track.length / 3);
+      for (const k of ['over', 'x2', 'shield', 'grav', 'time'] as const) {
+        expect(track.some((q) => q.kind === k)).toBe(true);
+        expect(sky.some((q) => q.kind === k)).toBe(true);
+      }
+      expect(new Set(p.map((q) => q.id)).size).toBe(p.length);
     }
-    expect(new Set(p.map((q) => q.id)).size).toBe(p.length);
   });
 
   it('puts track ones just above the snow or a rail, clear of barriers, inside the course', () => {
-    setCoursePlan(null);
-    for (const q of all().filter((x) => !x.sky)) {
-      const above = q.y - H(q.x, q.s);
-      expect(above).toBeGreaterThan(0.9);
-      expect(above).toBeLessThan(6);
-      expect(Math.abs(q.x - C(q.s))).toBeLessThan(12);
-      const g = seg(q.k);
-      for (const b of g.blocks)
-        expect(Math.abs(q.s - b.s) > 3 || Math.abs(q.x - b.x) > b.w / 2 + 1).toBe(true);
+    for (const seed of SEEDS) {
+      setRunSeed(seed);
+      for (const q of all().filter((x) => !x.sky)) {
+        const above = q.y - H(q.x, q.s);
+        expect(above).toBeGreaterThan(0.9);
+        expect(above).toBeLessThan(6);
+        // a run-in pickup lines up with a window ramp (11 m off centre) and can sit back in a bend before it
+        expect(Math.abs(q.x - C(q.s))).toBeLessThan(14);
+        const g = seg(q.k);
+        for (const b of g.blocks)
+          expect(Math.abs(q.s - b.s) > 3 || Math.abs(q.x - b.x) > b.w / 2 + 1).toBe(true);
+      }
     }
   });
 
   it('only places sky ones high over launches', () => {
-    setCoursePlan(null);
-    for (const q of all().filter((x) => x.sky)) {
-      expect(['kicker', 'big', 'mega', 'pipe']).toContain(kindAt(q.k));
-      expect(q.y - H(q.x, q.s)).toBeGreaterThan(7);
-      expect(q.r).toBeGreaterThan(2);
+    for (const seed of SEEDS) {
+      setRunSeed(seed);
+      for (const q of all().filter((x) => x.sky)) {
+        expect(['kicker', 'big', 'mega', 'pipe']).toContain(kindAt(q.k));
+        expect(q.y - H(q.x, q.s)).toBeGreaterThan(7);
+        expect(q.r).toBeGreaterThan(2);
+      }
     }
   });
 
@@ -255,57 +267,59 @@ describe('effects on the rider', () => {
 
 describe('sky pickups can be reached', () => {
   it('a real jump off the launch below goes through each one', () => {
-    setCoursePlan(null);
-    const sky = all().filter((q) => q.sky);
-    const { p } = mkPlayer();
-    const reached = (q: Pickup): boolean => {
-      const kind = kindAt(q.k);
-      const g = seg(q.k);
-      for (const v of [22, 28, 34, 40, 46])
-        for (const pre of [0, 5, 10, 16]) {
-          for (const back of kind === 'pipe' ? [20, 30, 40, 50, 60] : [0]) {
-            p.resetAll();
-            if (kind === 'pipe') {
-              p.s = q.s - back;
-              p.x = C(p.s);
-            } else {
-              const r = g.ramps[0];
-              p.s = r.s - 25;
-              p.x = r.x;
-            }
-            p.y = H(p.x, p.s);
-            p.speed = v;
-            p.prevGv = -v * 0.4;
-            const side = kind === 'pipe' ? g.walls[0].side : 0;
-            let launched = false;
-            for (let f = 0; f < 500; f++) {
-              const i = idle();
-              if (side && !launched) {
-                if (side > 0) i.right = true;
-                else i.left = true;
+    for (const seed of SEEDS) {
+      setRunSeed(seed);
+      const sky = all().filter((q) => q.sky);
+      const { p } = mkPlayer();
+      const reached = (q: Pickup): boolean => {
+        const kind = kindAt(q.k);
+        const g = seg(q.k);
+        for (const v of [22, 28, 34, 40, 46])
+          for (const pre of [0, 5, 10, 16]) {
+            for (const back of kind === 'pipe' ? [20, 30, 40, 50, 60] : [0]) {
+              p.resetAll();
+              if (kind === 'pipe') {
+                p.s = q.s - back;
+                p.x = C(p.s);
+              } else {
+                const r = g.ramps[0];
+                p.s = r.s - 25;
+                p.x = r.x;
               }
-              const r = g.ramps[0];
-              // hold Space for the last `pre` metres of the run-in and let go at the lip: a charged pop
-              if (
-                !side &&
-                pre &&
-                p.state === 'ride' &&
-                p.s > r.s + r.len - pre &&
-                p.s < r.s + r.len - 0.6
-              )
-                i.space = true;
-              const a = { x: p.x, y: p.y, s: p.s };
-              p.update(DT, i);
-              if (p.state === 'air') launched = true;
-              if (touches(q, a.x, a.y, a.s, p.x, p.y, p.s)) return true;
-              if (launched && p.state !== 'air') break;
-              if (p.s > q.s + 40) break;
+              p.y = H(p.x, p.s);
+              p.speed = v;
+              p.prevGv = -v * 0.4;
+              const side = kind === 'pipe' ? g.walls[0].side : 0;
+              let launched = false;
+              for (let f = 0; f < 500; f++) {
+                const i = idle();
+                if (side && !launched) {
+                  if (side > 0) i.right = true;
+                  else i.left = true;
+                }
+                const r = g.ramps[0];
+                // hold Space for the last `pre` metres of the run-in and let go at the lip: a charged pop
+                if (
+                  !side &&
+                  pre &&
+                  p.state === 'ride' &&
+                  p.s > r.s + r.len - pre &&
+                  p.s < r.s + r.len - 0.6
+                )
+                  i.space = true;
+                const a = { x: p.x, y: p.y, s: p.s };
+                p.update(DT, i);
+                if (p.state === 'air') launched = true;
+                if (touches(q, a.x, a.y, a.s, p.x, p.y, p.s)) return true;
+                if (launched && p.state !== 'air') break;
+                if (p.s > q.s + 40) break;
+              }
             }
           }
-        }
-      return false;
-    };
-    const miss = sky.filter((q) => !reached(q));
-    expect(miss.map((q) => q.id + ' ' + kindAt(q.k))).toEqual([]);
+        return false;
+      };
+      const miss = sky.filter((q) => !reached(q));
+      expect(miss.map((q) => seed + ' ' + q.id + ' ' + kindAt(q.k))).toEqual([]);
+    }
   });
 });

@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import { ND } from './nd';
+import { districtAt, mixSeed } from './course';
 
 const T_INIT = performance.now();
 const SEG = ND.SEG, HALF = ND.HALF, C = ND.C;
@@ -325,9 +326,8 @@ const DIST = [
   { name: 'CORPORATE', rail: 4, win: ['c0', 'c1', 'c2'], front: { w: [14, 24], d: [16, 26], h: [50, 110], gap: [3, 9] }, mid: { h: [100, 180] }, far: { h: [130, 230] },
     types: { box: 0.35, tier: 0.35, tower: 0.2, cyl: 0.1 }, edge: 1, blade: 0.4, facade: 0.4, jp: 0.2, bb: 0.5, tick: 0.2, ban: 0, lantern: 0.02, llines: 0, pag: 0, steam: 0.05, cab: 1, beam: 0.55, clutter: 0.3, flick: 0.08, neon: [CYAN, WHT, VIO, PINK, 0x9ad0ff].map(rgb) }
 ];
-const distIdx = (b) => { if (b <= 0) return 0; let h = (hash(b * 13.7 + 3) * DIST.length) | 0; const p = distIdx(b - 1); if (h === p) h = (h + 1 + ((hash(b * 5.3) * (DIST.length - 1)) | 0)) % DIST.length; return h; };
-const dcache = new Map();
-const distOf = (k) => { const b = Math.floor(Math.max(0, k) / 5); let i = dcache.get(b); if (i === undefined) { i = distIdx(b); dcache.set(b, i); } return DIST[i]; };
+// which district a segment is in comes from the course's shuffle bag (all five before any repeats, 420 m each)
+const distOf = (k) => DIST[districtAt(k)];
 const wpick = (r, t) => { let tot = 0; for (const k in t) tot += t[k]; let v = r() * tot; for (const k in t) { v -= t[k]; if (v <= 0) return k; } return 'box'; };
 const between = (r, a) => a[0] + r() * (a[1] - a[0]);
 
@@ -335,7 +335,7 @@ const between = (r, a) => a[0] + r() * (a[1] - a[0]);
 function neonPick(r, D) { return pick(r, D.neon); }
 function flickState(r, D) { return r() < D.flick ? pick(r, ['A', 'B', 'C']) : '0'; }
 function build(group, k, g) {
-  const D = distOf(k), r = rngf(k * 7717 + 31), B = new Batch(), s0 = k * SEG;
+  const D = distOf(k), r = rngf(mixSeed(k * 7717 + 31)), B = new Batch(), s0 = k * SEG;
   const zones = g.rails.filter((q) => q.win).map((q) => ({ side: q.win, a: q.s - 8, b: q.s + 20 }));
   const anch = { '-1': [], '1': [] };
   const bbKey = () => (r() < 0.5 ? 'bc' + (r() < 0.5 ? 0 : 1) : 'b0');

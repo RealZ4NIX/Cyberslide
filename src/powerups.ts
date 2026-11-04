@@ -3,7 +3,7 @@
    float where a committed jump off a kicker, big ramp, mega ramp or side quarterpipe will take you. Placement uses its
    own seeded random stream, so adding pickups never moves anything else on the course. pickups.ts draws them. */
 
-import { base, C, H, HALF, MEGA_CAP, rampSum, railY, rng, seg, SEG } from './course';
+import { base, C, H, HALF, MEGA_CAP, mixSeed, rampSum, railY, rng, seg, SEG } from './course';
 import type { Segment, SegKind } from './course';
 
 export type PowerKind = 'over' | 'x2' | 'shield' | 'grav' | 'time';
@@ -118,7 +118,7 @@ function place(g: Segment): Pickup[] {
   const out: Pickup[] = [];
   const kind = g.kind;
   if (g.k < 3 || kind.startsWith('tut') || kind === 'start') return out;
-  const r = rng(g.k * 48271 + 991);
+  const r = rng(mixSeed(g.k * 48271 + 991));
   const add = (sky: boolean, x: number, y: number, s: number): void => {
     const k = pick(r, sky ? SKY_W : TRACK_W);
     out.push({

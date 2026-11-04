@@ -12,7 +12,8 @@ src/
   nd.ts               shared namespace
   styles.css          all styling
 
-  course.ts           the hill as pure data: segment kinds, bends, ramps, rails, dips, walls, height field
+  course.ts           the hill as pure data: run seed, feature deck, district order, bends, ramps, rails, dips,
+                      walls, height field
   world.ts            turns the course into meshes and streams chunks around the rider
   powerups.ts         power-ups as pure data: where pickups sit, what each does, the timers on the rider
   pickups.ts          draws the pickups as spinning holograms and finds when the rider touches one
@@ -54,7 +55,8 @@ and objects built up property by property.
 course and the real player physics. `test-utils/fakeDom.ts` stubs just enough canvas for modules that draw
 textures when they load; import it first in a test that needs it.
 
-- `course.test.ts`: determinism, layout rules, smooth bends, height field, rails
+- `course.test.ts`: same seed = same hill, different seeds differ, layout rules, the feature deck, the district
+  shuffle bag, smooth bends, height field, rails (layout rules run on several seeds)
 - `player.test.ts`: headless rides at 60 fps: speed, steering, charged jumps, landing, a kickflip, rider stats
 - `tricks.test.ts`: every input is unique, point scaling, input labels
 - `scores.test.ts`: ranking, ties, top 10, name cleaning, corrupt or blocked storage, swappable backend
@@ -62,8 +64,22 @@ textures when they load; import it first in a test that needs it.
 - `audio.test.ts`: safe before the context exists, mixer setup, every sound effect, music scheduling
 - `riders.test.ts`: stats, multipliers, every model builds, the secret rider unlock
 - `secretCode.test.ts`: code sequences, junk input, wrong order, timeout between inputs
-- `powerups.test.ts`: placement (deterministic, leaves the course alone, track common / sky rare), touching,
+- `powerups.test.ts`: placement on several seeds (deterministic, leaves the course alone, track common / sky rare), touching,
   timers, every effect on the real player, and that a real jump reaches every sky pickup
+
+## Random hill
+
+Every run, restarts included, rolls a new seed (`world.reseed()` in `startRun`); the tutorial uses seed 0, the
+fixed hill. The seed is mixed into every random stream that builds the hill (`mixSeed` in `course.ts`): segment
+contents, bends, power-up spots and city scenery, so one seed always rebuilds the exact same run.
+
+- **Feature deck.** Which feature comes next is dealt from a shuffled deck of 25 cards in the same shares the old
+  weighted roll had (`DECK`), reshuffled when it runs out, so every 2-minute run sees about one full deck. The same
+  feature never comes twice in a row, except bends. The safety rules are unchanged and don't use cards: a clear
+  landing stretch after big jumps, megas, window rails, rail chains and pipes, and a landing slope after high rails.
+- **Run-in.** One calm start segment (70 m) before the first feature.
+- **Districts** are scenery only. Their order is a shuffle bag of all five (`districtAt`), each lasting 6 segments
+  (420 m); a district never follows itself, not even across a reshuffle.
 
 ## Power-ups
 

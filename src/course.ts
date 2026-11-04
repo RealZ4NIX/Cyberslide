@@ -1,5 +1,6 @@
 /* CYBERSLIDE - course: the endless hill as pure data. Which kind of segment comes where, where the path bends,
-   the ramps, rails, dips, walls and obstacles in each segment, and the height of the snow at any point.
+   the ramps, rails, dips, walls and obstacles in each segment, which district each one sits in, and the height of
+   the snow at any point. Every run rolls a new seed (setRunSeed); the same seed always builds the same hill.
    Nothing here touches three.js or the DOM, so it is fully deterministic and testable. world.ts turns it into meshes. */
 
 export const SEG = 70; // length of one hill segment (m along the slope)
@@ -150,6 +151,90 @@ export interface Segment {
 /** a short repeating course (tutorial): segment index -> kind */
 export type CoursePlan = (i: number) => SegKind;
 
+/* ---------- run seed: every run rolls a new one, so the same code builds a different hill ---------- */
+let runSeed = 0;
+/** mixes the run seed into a per-item seed; seed 0 leaves it unchanged */
+export const mixSeed = (n: number): number => (n ^ Math.imul(runSeed, 0x9e3779b1)) | 0;
+export const getRunSeed = (): number => runSeed;
+/** a fresh random seed (never 0, which is the fixed hill the tests and the tutorial use) */
+export const randomSeed = (): number => ((Math.random() * 0xfffffffe) | 0) + 1 || 1;
+
+/* ---------- feature deck: today's share of each feature, shuffled and dealt, reshuffled when empty ---------- */
+/** 25 cards in the same proportions the old weighted roll had (rare ones rounded to a whole card) */
+export const DECK: Partial<Record<SegKind, number>> = {
+  bend: 6,
+  mega: 4,
+  pipe: 4,
+  railchain: 2,
+  kicker: 1,
+  rails: 1,
+  big: 1,
+  kickrail: 1,
+  sky: 1,
+  mid: 1,
+  window: 1,
+  open: 1,
+  clear: 1,
+};
+let deck: SegKind[] = [];
+let deckRng: () => number = rng(0x5eed);
+let lastCard: SegKind | null = null;
+function freshDeck(): SegKind[] {
+  const d: SegKind[] = [];
+  for (const k in DECK) for (let n = DECK[k as SegKind]!; n > 0; n--) d.push(k as SegKind);
+  for (let i = d.length - 1; i > 0; i--) {
+    const j = Math.floor(deckRng() * (i + 1));
+    [d[i], d[j]] = [d[j], d[i]];
+  }
+  return d;
+}
+/** the next card (dealt from the end); the same feature never comes twice in a row, except bends, which snake */
+function draw(): SegKind {
+  if (!deck.length) deck = freshDeck();
+  const top = deck.length - 1;
+  if (deck[top] === lastCard && lastCard !== 'bend') {
+    let j = deck.findIndex((c) => c !== lastCard);
+    if (j < 0) {
+      // only repeats are left: they go to the bottom of the next deck
+      deck = deck.concat(freshDeck());
+      j = deck.findIndex((c, i) => i > top && c !== lastCard);
+    }
+    const t = deck.length - 1;
+    [deck[j], deck[t]] = [deck[t], deck[j]];
+  }
+  lastCard = deck.pop()!;
+  return lastCard;
+}
+
+/* ---------- districts: a shuffle bag of all five, each 6 segments (420 m) ---------- */
+export const DISTRICTS = 5;
+export const DIST_SEGS = 6;
+const bags: number[][] = [];
+function bag(b: number): number[] {
+  while (bags.length <= b) {
+    const n = bags.length,
+      r = rng(mixSeed(n * 2654435 + 101)),
+      a = Array.from({ length: DISTRICTS }, (_, i) => i);
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(r() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    const prev = bags[n - 1];
+    // never the same district across a reshuffle: swap the opener with a random later one
+    if (prev && a[0] === prev[DISTRICTS - 1]) {
+      const j = 1 + Math.floor(r() * (DISTRICTS - 1));
+      [a[0], a[j]] = [a[j], a[0]];
+    }
+    bags.push(a);
+  }
+  return bags[b];
+}
+/** which district (0..4) segment k sits in */
+export function districtAt(k: number): number {
+  const i = Math.floor(Math.max(0, k) / DIST_SEGS);
+  return bag(Math.floor(i / DISTRICTS))[i % DISTRICTS];
+}
+
 /* ---------- course layout: which kind of segment comes where, and where the path bends ---------- */
 const segCache = new Map<number, Segment>();
 export const SKY_OFF = 41,
@@ -174,10 +259,9 @@ function makeInfo(i: number): void {
     return;
   }
   const c = prev ? prev.cEnd : 0;
-  const r = rng(i * 104729 + 7),
-    p = r();
+  const r = rng(mixSeed(i * 104729 + 7));
   let kind: SegKind;
-  if (i < 2) kind = 'start';
+  if (i < 1) kind = 'start';
   else if (prev.kind === 'sky' || prev.kind === 'mid')
     kind = 'land'; // landing slope after leaving a high rail
   else if (
@@ -191,19 +275,7 @@ function makeInfo(i: number): void {
     (i >= 3 && infos[i - 3].kind === 'pipe')
   )
     kind = 'clear'; // a long landing slope / pipe wall spills into this one
-  else if (p < 0.24) kind = 'bend';
-  else if (p < 0.29) kind = 'kicker';
-  else if (p < 0.33) kind = 'rails';
-  else if (p < 0.39) kind = 'railchain';
-  else if (p < 0.42) kind = 'big';
-  else if (p < 0.46) kind = 'kickrail';
-  else if (p < 0.5) kind = 'sky';
-  else if (p < 0.54) kind = 'mid';
-  else if (p < 0.59) kind = 'window';
-  else if (p < 0.75) kind = 'mega';
-  else if (p < 0.9) kind = 'pipe';
-  else if (p < 0.96) kind = 'open';
-  else kind = 'clear';
+  else kind = draw();
   if (kind !== 'bend') {
     infos.push({ kind, bend: null, c, cEnd: c, hasDip: kind === 'kicker' && r() < 0.6 });
     return;
@@ -240,9 +312,21 @@ export const kindAt = (k: number): SegKind => info(k).kind;
 /** swap in a short repeating course (tutorial) or go back to the normal hill with null; forgets all generated segments */
 export function setCoursePlan(fn: CoursePlan | null | undefined): void {
   plan = fn || null;
+  forget();
+}
+/** start a new hill from this seed (0 = the fixed one); keeps any tutorial plan; forgets all generated segments */
+export function setRunSeed(seed: number): void {
+  runSeed = seed | 0;
+  bags.length = 0;
+  forget();
+}
+function forget(): void {
   infos.length = 0;
   segCache.clear();
   lastDir = 1;
+  deck = [];
+  deckRng = rng(mixSeed(0x5eed));
+  lastCard = null;
 }
 
 function barrier(s: number, x: number, wide: boolean): Block {
@@ -281,7 +365,7 @@ function mkRail(
 }
 
 function gen(k: number): Segment {
-  const r = rng(k * 7919 + 13);
+  const r = rng(mixSeed(k * 7919 + 13));
   const s0 = k * SEG,
     inf = info(k),
     kind = inf.kind,
