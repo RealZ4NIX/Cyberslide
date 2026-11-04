@@ -23,7 +23,7 @@ src/
   riders.ts           the four rider models plus secret SKELLY, their stats and stat-to-physics multipliers
   riderSelect.ts      the spinning rider ring in the menu
   player.ts           rider physics, tricks, grinds, landings, combo scoring
-  scoring.ts          the speed multiplier on banked combos and the distance points per metre
+  scoring.ts          the speed and distance multipliers on banked combos
   tricks.ts           the trick list and how each trick is input
   tutorial.ts         learn-by-doing practice courses
   game.ts             renderer, camera, input, HUD, menus, modes, settings
@@ -69,8 +69,8 @@ textures when they load; import it first in a test that needs it.
 - `course.test.ts`: same seed = same hill, different seeds differ, layout rules, the feature deck, the district
   shuffle bag, smooth bends, height field, rails (layout rules run on several seeds)
 - `player.test.ts`: headless rides at 60 fps: speed, steering, charged jumps, landing, a kickflip, rider stats, the
-  speed multiplier on a bank and the distance points
-- `scoring.test.ts`: speed multiplier steps and cap, distance rate and its total
+  speed and distance multipliers on a bank (distance only when `distMulti` is on: the 2-minute run)
+- `scoring.test.ts`: speed multiplier steps and cap, distance multiplier steps
 - `tricks.test.ts`: every input is unique, point scaling, input labels
 - `scores.test.ts`: ranking, ties, top 10, name cleaning, corrupt or blocked storage, swappable backend
 - `gamepad.test.ts`: pad detection, dead-zone, press/release edges, stick hysteresis, rumble

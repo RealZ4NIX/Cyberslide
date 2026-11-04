@@ -6,7 +6,6 @@ import * as THREE from 'three';
 import { ND } from './nd';
 import { secretCode } from './secretCode';
 import { randomSeed } from './course';
-import { distRate } from './scoring';
 import { createConnector } from './net/link';
 import { createSession } from './net/session';
 import { initialStep, lobbyStep } from './net/linkSteps';
@@ -352,7 +351,7 @@ export function boot(): void {
   /* ---------- HUD ---------- */
   const el = {
     score: $('hudScore'), pts: $('hudPts'), mult: $('hudMult'), bar: $('hudBar'), time: $('hudTime'), timeLbl: $('hudTimeLbl'),
-    speed: $('hudSpeed'), smult: $('hudSpdMult'), speedBox: $('speedBox'), boost: $('hudBoost'), dist: $('hudDistM'), distRate: $('hudDistRate'), banner: $('banner'), big: $('big'), feed: $('feed'), combo: $('combo'),
+    speed: $('hudSpeed'), smult: $('hudSpdMult'), speedBox: $('speedBox'), boost: $('hudBoost'), dist: $('hudDistM'), dmult: $('hudDistMult'), banner: $('banner'), big: $('big'), feed: $('feed'), combo: $('combo'),
     flash: $('flash'), spec: $('hudSpec'), specBox: $('specBox'), fail: $('fail')
   };
   const fmt = (n) => Math.round(n).toLocaleString('en-US');
@@ -365,7 +364,7 @@ export function boot(): void {
   }
   let bigT = 0;
   function big(text, cls) { el.big.textContent = text; el.big.className = 'show ' + (cls || ''); bigT = 1.1; }
-  let lastBanner = '', lastScore = -1, lastSm = -1, lastDr = -1, dispScore = 0, failT = 0, slowT = 0;
+  let lastBanner = '', lastScore = -1, lastSm = -1, lastDm = -1, dispScore = 0, failT = 0, slowT = 0;
   function showFail(reason, lost) {
     $('failWhy').textContent = reason || 'Wipeout';
     $('failPts').textContent = '-' + fmt(lost);
@@ -400,8 +399,8 @@ export function boot(): void {
     el.boost.style.width = (player.boostT > 0 ? Math.min(100, player.boostT / player.boostMax * 100) : 0) + '%';
     el.speedBox.classList.toggle('boost', player.boostT > 0);
     el.dist.textContent = fmt(player.dist) + ' m';
-    const dr = player.distScore ? Math.floor(distRate(player.distFar)) : 0;
-    if (dr !== lastDr) { el.distRate.textContent = dr ? '+' + dr + ' PTS/M' : ''; lastDr = dr; }
+    const dm = player.distMult();
+    if (dm !== lastDm) { el.dmult.textContent = player.distMulti ? 'DIST x' + dm.toFixed(1) : ''; el.dmult.classList.toggle('on', dm > 1); lastDm = dm; }
     el.spec.style.width = Math.round(player.special * 100) + '%';
     const full = player.special >= 1;
     el.specBox.classList.toggle('full', full);
@@ -532,7 +531,7 @@ export function boot(): void {
       if (n === 'crash') { toast('WIPEOUT  no worries, try again', 'info'); ND.audio.sfx('crash'); ND.audio.grind(false, 0); return; }   // practice: no FAIL drop
     }
     if (n === 'trick') { toast(d.name + (d.pts ? '  +' + fmt(d.pts) : '') + (d.x2 ? '  2X' : '') + (d.mix ? '  MIX x' + d.mix : d.chain > 1 ? '  CHAIN x' + d.chain : ''), 'trick', d.input); ND.audio.sfx('trick'); }
-    else if (n === 'bank') { toast('COMBO BANKED +' + fmt(d.total) + (d.speed > 1 ? '  SPEED x' + d.speed.toFixed(1) : ''), 'bank'); big('+' + fmt(d.total), 'bank'); ND.audio.sfx('bank'); }
+    else if (n === 'bank') { toast('COMBO BANKED +' + fmt(d.total) + (d.speed > 1 ? '  SPEED x' + d.speed.toFixed(1) : '') + (d.dist > 1 ? '  DIST x' + d.dist.toFixed(1) : ''), 'bank'); big('+' + fmt(d.total), 'bank'); ND.audio.sfx('bank'); }
     else if (n === 'crash' && d.shielded) { toast((d.reason || 'Wipeout').toUpperCase() + '  COMBO SHIELD  combo saved', 'shield'); big('SAVED', 'shield'); shieldFlash(); ND.audio.sfx('crash'); ND.audio.sfx('shield'); ND.audio.grind(false, 0); }
     else if (n === 'power') powerToast(d);
     else if (n === 'crash') { toast((d.reason || 'Wipeout').toUpperCase() + (d.lost ? '  combo lost -' + fmt(d.lost) : ''), 'bad'); if (d.lost > 0) showFail(d.reason, d.lost); else big(d.reason === 'Bad landing' ? 'BAD LANDING' : 'WIPEOUT', 'bad'); ND.audio.sfx('crash'); ND.audio.grind(false, 0); }
@@ -863,7 +862,8 @@ export function boot(): void {
     player.resetAll(); ND.world.clear(); ND.world.update(player.s); ND.pickups.clear(!tut, m === 'timed');
     if (net) { player.x = ND.C(player.s) + (net.host ? -2.5 : 2.5); player.y = ND.H(player.x, player.s); }   // 1v1: side by side at the gate, host on the left
     if (tut) player.speedCap = ND.tutorial.cap();
-    player.distScore = !tut;   // practice runs don't earn distance points
+    player.distMulti = m === 'timed';   // the distance multiplier is for the 2-minute run (1v1 included); endless and practice don't have it
+    lastDm = -1;
     lastP = { x: player.x, y: player.y, s: player.s };
     timeLeft = RUN_LEN; cd = tut ? 2.6 : net ? net.cd : 3; state = 'countdown'; show(null); cdN = -1; el.big.className = '';
     el.timeLbl.textContent = m === 'timed' ? 'TIME' : 'ENDLESS';
@@ -944,7 +944,7 @@ export function boot(): void {
     $('resBest').textContent = fmt(Math.max(best, player.score));
     $('resCombo').textContent = fmt(st.bestCombo); $('resTricks').textContent = st.tricks; $('resGrinds').textContent = st.grinds;
     $('resCrash').textContent = st.crashes; $('resSpeed').textContent = Math.round(st.topSpeed * 3.6) + ' km/h';
-    $('resDist').textContent = fmt(player.dist) + ' m'; $('resDistPts').textContent = st.distPts ? '+' + fmt(st.distPts) : ''; $('resAir').textContent = st.bestAir.toFixed(1) + ' s';
+    $('resDist').textContent = fmt(player.dist) + ' m'; $('resDistX').textContent = player.distMulti && player.distMult() > 1 ? 'x' + player.distMult().toFixed(1) : ''; $('resAir').textContent = st.bestAir.toFixed(1) + ' s';
     $('resRank').hidden = true;
     mpResultSetup();
     show('result');

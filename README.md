@@ -48,7 +48,7 @@ bends, launch off kickers and quarterpipes, flip and grab in the air, then tap *
 - **64 tricks:** flip tricks, grab tricks and specials, each a short arrow sequence plus one button
 - **Combos that pay:** a spin or flip mixed with tricks in one jump scores as one big trick
 - **Speed pays:** a combo banks with a speed multiplier, up to x1.5 at 300 km/h
-- **Distance pays:** every new metre down the hill trickles in points, and the deeper you are the more each one is worth
+- **Distance pays:** in the 2-minute run, every km down the hill adds x0.1 to your combos, on top of the speed multiplier
 - **Perfect landings:** time your tap to land clean, get a speed boost and build a perfect streak
 - **Rails and quarterpipes:** grind ground rails, launch out of the side pipes, reach for the sky pickups
 - **Power-ups** on the track and in the sky
@@ -84,8 +84,8 @@ bends, launch off kickers and quarterpipes, flip and grab in the air, then tap *
 
 Stop tricking for 2 seconds to bank your combo; land wrong and it's gone. The speed you are doing when it banks
 multiplies it: x1.0 up to 100 km/h, +0.1 for every 40 km/h above that, x1.5 from 300 km/h (shown over the km/h).
-On top of that, every new metre you ride is worth 1 point at the top of the hill, 1 more for every km you've come,
-up to 10 per metre. Every trick fills the special meter, and
+In the 2-minute run, how far down the hill you are multiplies it too: +0.1 for every full km (shown under the
+distance), stacked on top of the speed multiplier. Every trick fills the special meter, and
 once it's full you can throw specials. Specials in a mega quarterpipe air pay double. All keys and buttons can be
 rebound in the options.
 

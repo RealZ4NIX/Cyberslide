@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { distPoints, distRate, speedMult } from './scoring';
+import { distMult, speedMult } from './scoring';
 
 const kmh = (v: number) => v / 3.6;
 
@@ -30,23 +30,16 @@ describe('speed multiplier', () => {
   });
 });
 
-describe('distance points', () => {
-  it('pay more per metre the deeper you are, up to a cap', () => {
-    expect(distRate(0)).toBe(1);
-    expect(distRate(1000)).toBe(2);
-    expect(distRate(5000)).toBe(6);
-    expect(distRate(9000)).toBe(10);
-    expect(distRate(50000)).toBe(10);
+describe('distance multiplier', () => {
+  it('is x1.0 for the first km, then +0.1 for every full km', () => {
+    expect(distMult(0)).toBe(1);
+    expect(distMult(999)).toBe(1);
+    expect(distMult(1000)).toBe(1.1);
+    expect(distMult(5400)).toBe(1.5);
+    expect(distMult(9000)).toBe(1.9);
+    expect(distMult(11000)).toBe(2.1);
   });
-  it('add up to the area under the rate', () => {
-    expect(distPoints(0)).toBe(0);
-    expect(distPoints(1000)).toBe(1500);
-    expect(distPoints(5000)).toBe(17500);
-    expect(distPoints(9000)).toBe(49500);
-    expect(distPoints(10000)).toBe(59500);
-    // the closed form matches stepping metre by metre
-    let sum = 0;
-    for (let d = 0; d < 6000; d += 0.5) sum += distRate(d + 0.25) * 0.5;
-    expect(sum).toBeCloseTo(distPoints(6000), 0);
+  it('has no cap (the 2-minute clock is the cap)', () => {
+    expect(distMult(20000)).toBe(3);
   });
 });

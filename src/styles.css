@@ -38,8 +38,9 @@
   #hudTime { text-shadow: 2px 2px 0 #0a8f99, 0 0 16px rgba(47,240,255,.55); }
   #hudTime.low { color: var(--gold); text-shadow: 2px 2px 0 #7a4a00, 0 0 16px rgba(255,210,63,.6); animation: blink .5s steps(2) infinite; }
   #hudDist { margin-top: 4px; font-weight: 700; letter-spacing: .12em; color: var(--paper); text-shadow: 0 0 6px #000; font-variant-numeric: tabular-nums; }
-  #hudDistRate { display: block; margin-top: 2px; font-size: 10px; letter-spacing: .2em; color: var(--gold); opacity: .8; }
-  #hudDistRate:empty { display: none; }
+  #hudDistMult { margin-left: 10px; font-size: 11px; letter-spacing: .2em; color: var(--dim); }
+  #hudDistMult.on { color: var(--gold); text-shadow: 0 0 8px rgba(255,210,63,.45); }
+  #hudDistMult:empty { display: none; }
   #combo { margin-top: 10px; width: min(260px, 52vw); padding: 8px 12px 9px; border-left: 4px solid var(--gold); display: none; background: linear-gradient(90deg, rgba(255,210,63,.16), rgba(7,4,26,.7) 40%); clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
   #combo.on { display: block; }
   .cline { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-family: var(--display); font-style: italic; }
@@ -60,7 +61,7 @@
   #hudSpdMult.on { opacity: 1; color: var(--cyan); text-shadow: 0 0 10px rgba(47,240,255,.5); }
   #hudSpdMult.t3, #hudSpdMult.t4 { color: var(--gold); text-shadow: 0 0 10px rgba(255,210,63,.55); }
   #hudSpdMult.t5 { color: var(--pink); text-shadow: 0 0 12px rgba(255,63,208,.7); }
-  #resDistPts { font-size: .8em; color: var(--gold); }
+  #resDistX { font-size: .8em; color: var(--gold); }
   /* 1v1: the rival box sits under the time box, so the trick feed moves down below it */
   #hudRival:not([hidden]) ~ #feed { top: calc(128px + 40px + clamp(22px, 3.8vw, 33px)); }
   #feed { top: 114px; right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 60vw; }

@@ -310,30 +310,33 @@ describe('going fast and going far pay', () => {
     expect(fast.p.score).toBe(1800);
   });
 
-  it('every new metre down the hill trickles in distance points', () => {
+  it('in the 2-minute run the distance down the hill multiplies the bank too, on top of speed', () => {
+    const { p, events } = mkPlayer();
+    p.distMulti = true;
+    p.dist = p.s = 9500; // 9 full km: x1.9
+    p.addCombo('Kickflip', 1000, false, 1);
+    p.speed = 300 / 3.6; // x1.5
+    p.bank();
+    expect(events.find((e) => e.n === 'bank')?.d).toMatchObject({ speed: 1.5, dist: 1.9 });
+    expect(p.score).toBe(Math.round(1000 * 1.2 * 1.5 * 1.9));
+  });
+
+  it('endless and practice runs (distMulti off) have no distance multiplier', () => {
     const { p } = mkPlayer();
+    p.distMulti = false;
+    p.dist = p.s = 9500;
+    expect(p.distMult()).toBe(1);
+    p.addCombo('Kickflip', 1000, false, 1);
+    p.speed = 50 / 3.6;
+    p.bank();
+    expect(p.score).toBe(1200);
+  });
+
+  it('riding down the hill adds no points on its own', () => {
+    const { p } = mkPlayer();
+    p.distMulti = true;
     run(p, 10);
     expect(p.dist).toBeGreaterThan(100);
-    expect(p.stats.distPts).toBeGreaterThan(0);
-    expect(p.score).toBe(p.stats.distPts); // no tricks: all of it is distance
-    // close to the closed form (the trickle rounds down to whole points as it goes)
-    expect(p.stats.distPts).toBeGreaterThanOrEqual(Math.floor(p.dist) - 2);
-  });
-
-  it('riding back over the same metres pays nothing twice', () => {
-    const { p } = mkPlayer();
-    run(p, 4);
-    const pts = p.stats.distPts;
-    p.s -= 30; // as if pushed back up the hill
-    run(p, 0.2);
-    expect(p.stats.distPts).toBe(pts);
-  });
-
-  it('practice runs (distScore off) earn no distance points', () => {
-    const { p } = mkPlayer();
-    p.distScore = false;
-    run(p, 5);
-    expect(p.dist).toBeGreaterThan(20);
     expect(p.score).toBe(0);
   });
 });

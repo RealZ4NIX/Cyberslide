@@ -1,5 +1,6 @@
-/* CYBERSLIDE - run scoring that rewards going fast and going far: the speed multiplier on banked combos and the
-   distance points that trickle in as you ride down the hill. Pure numbers; player.ts applies them, game.ts shows them. */
+/* CYBERSLIDE - run scoring that rewards going fast and going far: two multipliers on every banked combo, one for the
+   speed you are doing when it banks and one for how far down the hill you are by then. They stack with each other
+   and with the combo multiplier. Pure numbers; player.ts applies them, game.ts shows them. */
 
 /** km/h where the speed multiplier starts climbing */
 export const SPEED_FLOOR = 100;
@@ -16,22 +17,11 @@ export function speedMult(speed: number): number {
   return Math.min(SPEED_MAX, Math.round((1 + 0.1 * steps) * 10) / 10);
 }
 
-/** distance points per metre at the start of the hill */
-export const DIST_BASE = 1;
-/** extra points per metre for every km already ridden */
-export const DIST_GROW = 1;
-/** most points per metre (reached 9 km down) */
-export const DIST_MAX = 10;
+/** what each km down the hill adds to the distance multiplier */
+export const DIST_STEP = 0.1;
 
-/** distance points per metre at `dist` metres down the hill: 1 at the top, +1 every km, 10 at most */
-export function distRate(dist: number): number {
-  return Math.min(DIST_MAX, DIST_BASE + (DIST_GROW * Math.max(0, dist)) / 1000);
-}
-
-/** total distance points for riding from the top to `dist` metres (the integral of distRate) */
-export function distPoints(dist: number): number {
-  const d = Math.max(0, dist),
-    cap = ((DIST_MAX - DIST_BASE) / DIST_GROW) * 1000; // where the rate stops growing
-  const a = Math.min(d, cap);
-  return DIST_BASE * a + (DIST_GROW * a * a) / 2000 + DIST_MAX * Math.max(0, d - cap);
+/** combo multiplier for how far down the hill you are (2-minute runs only): x1.0 for the first km, +0.1 for every
+ *  full km after that, no cap (the clock is the cap). Whole km, so the number on the HUD is the one a bank uses. */
+export function distMult(dist: number): number {
+  return Math.round((1 + DIST_STEP * Math.floor(Math.max(0, dist) / 1000)) * 10) / 10;
 }
