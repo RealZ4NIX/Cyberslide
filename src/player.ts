@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { ND } from './nd';
 import { Powers, OVER_KICK } from './powerups';
+import { distRate, speedMult } from './scoring';
 
 const G = 28, TAU = Math.PI * 2, CHAIN_TIME = 2.2, LAND_YAW = 0.62, LAND_FLIP = 0.7;
 const PERFECT_WIN = 0.3;   // seconds before touchdown in which Space gives a perfect landing
@@ -95,8 +96,8 @@ class Player {
 
   resetAll() {
     this.speedCap = 0; this.slide = 0; this.slideDir = 1;
-    this.score = 0; this.dist = 0;
-    this.stats = { tricks: 0, crashes: 0, topSpeed: 0, bestCombo: 0, grinds: 0, bestAir: 0 };
+    this.score = 0; this.dist = 0; this.distFar = 0; this.distAcc = 0;
+    this.stats = { tricks: 0, crashes: 0, topSpeed: 0, bestCombo: 0, grinds: 0, bestAir: 0, distPts: 0 };
     this.combo = { pts: 0, entries: 0, timer: 0, active: false };
     this.x = 0; this.s = 8; this.y = ND.H(0, 8);
     this.heading = 0; this.hv = 0; this.speed = 14; this.vy = 0; this.prevGv = -14;
@@ -233,6 +234,9 @@ class Player {
   get boostNow() { return this.boostT > 0 ? this.boostPow * Math.min(1, this.boostT / 0.7) : 0; }
 
   mult() { return 1 + 0.2 * this.combo.entries; }   // no cap
+  /* going fast pays: the speed you are doing when a combo banks multiplies it, x1.0 up to 100 km/h, +0.1 for every
+     40 km/h above that, x1.5 from 300 km/h. Whole steps, so the x shown next to the km/h is exactly what you get. */
+  speedMult() { return speedMult(this.speed); }
 
   addCombo(name, pts, sp, chain, nofill, def, mix) {
     const c = this.combo;
@@ -247,10 +251,11 @@ class Player {
   bank() {
     const c = this.combo;
     if (!c.active) return;
-    const total = Math.round(c.pts * this.mult());
+    const sm = this.speedMult();
+    const total = Math.round(c.pts * this.mult() * sm);
     this.score += total;
     if (total > this.stats.bestCombo) this.stats.bestCombo = total;
-    this.emit('bank', { total, mult: this.mult() });
+    this.emit('bank', { total, mult: this.mult(), speed: sm });
     c.pts = 0; c.entries = 0; c.active = false; c.timer = 0;
   }
 
@@ -341,6 +346,15 @@ class Player {
     this.wasSpace = inp.space;
     if (this.speedCap && this.speed > this.speedCap) this.speed = this.speedCap;   // tutorial: keep the pace calm
     this.dist = Math.max(0, this.s - 8);
+    // distance points: a steady trickle for every new metre down the hill, paying more the deeper you are
+    if (this.dist > this.distFar) {
+      if (this.distScore !== false) {
+        this.distAcc += distRate(this.distFar) * (this.dist - this.distFar);
+        const whole = Math.floor(this.distAcc);
+        if (whole > 0) { this.distAcc -= whole; this.score += whole; this.stats.distPts += whole; }
+      }
+      this.distFar = this.dist;
+    }
     if (this.speed > this.stats.topSpeed) this.stats.topSpeed = this.speed;
     if (this.combo.active && this.state === 'ride') {
       this.combo.timer -= dt;

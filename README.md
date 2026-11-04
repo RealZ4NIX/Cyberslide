@@ -47,6 +47,8 @@ bends, launch off kickers and quarterpipes, flip and grab in the air, then tap *
 - **1V1 LINK:** race a friend online on the same random hill, no account or server
 - **64 tricks:** flip tricks, grab tricks and specials, each a short arrow sequence plus one button
 - **Combos that pay:** a spin or flip mixed with tricks in one jump scores as one big trick
+- **Speed pays:** a combo banks with a speed multiplier, up to x1.5 at 300 km/h
+- **Distance pays:** every new metre down the hill trickles in points, and the deeper you are the more each one is worth
 - **Perfect landings:** time your tap to land clean, get a speed boost and build a perfect streak
 - **Rails and quarterpipes:** grind ground rails, launch out of the side pipes, reach for the sky pickups
 - **Power-ups** on the track and in the sky
@@ -80,7 +82,10 @@ bends, launch off kickers and quarterpipes, flip and grab in the air, then tap *
 | Body spin & flip       | <kbd>S</kbd> or <kbd>J</kbd> + arrow       | L2 / R2 + direction         |
 | Pause · Restart · Mute | <kbd>P</kbd> · <kbd>R</kbd> · <kbd>M</kbd> | Options · Create · Touchpad |
 
-Stop tricking for 2 seconds to bank your combo; land wrong and it's gone. Every trick fills the special meter, and
+Stop tricking for 2 seconds to bank your combo; land wrong and it's gone. The speed you are doing when it banks
+multiplies it: x1.0 up to 100 km/h, +0.1 for every 40 km/h above that, x1.5 from 300 km/h (shown over the km/h).
+On top of that, every new metre you ride is worth 1 point at the top of the hill, 1 more for every km you've come,
+up to 10 per metre. Every trick fills the special meter, and
 once it's full you can throw specials. Specials in a mega quarterpipe air pay double. All keys and buttons can be
 rebound in the options.
 
@@ -98,7 +103,8 @@ rebound in the options.
 ## Power-ups
 
 Spinning holograms on the track and in the sky. Track ones are common; sky ones float above kickers, big ramps and
-quarterpipes and are stronger. Grabbing one that is already running refreshes its timer.
+quarterpipes and are stronger. Grabbing one that is already running refreshes its timer. They are dealt from a
+shuffled bag, so any three in a row are three different powers.
 
 | Power-up         | Icon               | Effect                                            |
 | ---------------- | ------------------ | ------------------------------------------------- |
@@ -132,7 +138,7 @@ Race a friend on the same random hill for 2 minutes; the higher score wins.
 
 During the race you see your rival's rider doing their tricks live, with their name and score above them and the
 gap in the top right. Power-ups are your own, riders pass through each other, and Esc opens a menu over the running
-race (there is no pause or restart). After the run, **REMATCH** gives you both a brand new hill. Runs count for your
+race (there is no pause or restart). Leaving the lobby asks first, since it closes the link. After the run, **REMATCH** gives you both a brand new hill. Runs count for your
 local scoreboard. Some school or office networks block direct connections; try another network if it won't link.
 
 ## Develop

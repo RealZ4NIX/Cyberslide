@@ -124,6 +124,31 @@ describe('placement', () => {
     }
   });
 
+  it('never gives the same power twice in a row, or even two apart', () => {
+    for (const seed of SEEDS) {
+      setRunSeed(seed);
+      const line = all().sort((a, b) => a.s - b.s);
+      for (const timed of [true, false]) {
+        const kinds = line.map((q) => pickupKind(q, timed));
+        for (let i = 2; i < kinds.length; i++)
+          expect(new Set(kinds.slice(i - 2, i + 1)).size).toBe(3);
+        if (!timed) expect(kinds).not.toContain('time');
+      }
+    }
+  });
+
+  it('deals the same powers however the segments are asked for', () => {
+    setRunSeed(77);
+    const ahead = JSON.stringify(pickupsAt(120)); // jump far ahead first
+    const inOrder = JSON.stringify(Array.from({ length: 60 }, (_, k) => pickupsAt(k)));
+    setRunSeed(77);
+    expect(JSON.stringify(Array.from({ length: 60 }, (_, k) => pickupsAt(k)))).toBe(inOrder);
+    expect(JSON.stringify(pickupsAt(120))).toBe(ahead);
+    // forgotten segments (the course keeps only 60) come back with the same powers
+    for (let k = 0; k < 200; k++) seg(k);
+    expect(JSON.stringify(Array.from({ length: 60 }, (_, k) => pickupsAt(k)))).toBe(inOrder);
+  });
+
   it('has no pickups on a practice plan (tutorial kinds)', () => {
     setCoursePlan((i) => (i % 2 ? 'tutramp' : 'tutbar'));
     for (let k = 0; k < 20; k++) expect(pickupsAt(k)).toEqual([]);

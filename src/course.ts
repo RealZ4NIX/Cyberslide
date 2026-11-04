@@ -320,7 +320,11 @@ export function setRunSeed(seed: number): void {
   bags.length = 0;
   forget();
 }
+let planGen = 0;
+/** bumps every time the hill is forgotten (new seed or plan), so caches built on top of the course know to start over */
+export const courseGen = (): number => planGen;
 function forget(): void {
+  planGen++;
   infos.length = 0;
   segCache.clear();
   lastDir = 1;

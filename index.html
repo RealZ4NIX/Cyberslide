@@ -23,14 +23,14 @@
     <div class="tr">
       <div class="lbl" id="hudTimeLbl">TIME</div>
       <div id="hudTime">2:00</div>
-      <div id="hudDist">0 m</div>
+      <div id="hudDist"><span id="hudDistM">0 m</span><small id="hudDistRate"></small></div>
     </div>
     <div id="hudRival" hidden>
       <div class="lbl">VS <span id="hrName"></span></div>
       <div class="hr-line"><span id="hrScore">0</span><b id="hrGap"></b></div>
     </div>
     <div id="feed"></div>
-    <div class="bl" id="speedBox"><div class="spd"><span id="hudSpeed">0</span><small>km/h</small></div><div class="boostbar"><i id="hudBoost"></i></div></div>
+    <div class="bl" id="speedBox"><div id="hudSpdMult"></div><div class="spd"><span id="hudSpeed">0</span><small>km/h</small></div><div class="boostbar"><i id="hudBoost"></i></div></div>
     <div id="specBox"><canvas id="specFx" width="187" height="44"></canvas><div class="specbar"><i id="hudSpec"></i><span id="specLbl">SPECIAL</span></div></div>
     <div id="banner"></div>
     <div id="pups"></div>
@@ -193,7 +193,7 @@
         <div>Grinds <b id="resGrinds">0</b></div>
         <div>Wipeouts <b id="resCrash">0</b></div>
         <div>Top speed <b id="resSpeed">0</b></div>
-        <div>Distance <b id="resDist">0</b></div>
+        <div>Distance <b><span id="resDist">0</span> <small id="resDistPts"></small></b></div>
         <div>Longest air <b id="resAir">0</b></div>
       </div>
       <div class="stack">
@@ -266,6 +266,18 @@
       <div class="stack">
         <button class="btn" id="btnLbReady" type="button">READY<small>LOCKS YOUR RIDER</small></button>
         <button class="btn ghost" id="btnLbLeave" type="button">LEAVE LINK<small>ESC</small></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ov" id="leave" hidden>
+    <div class="panel gut">
+      <div class="crumb">Confirm <b>// leave link</b></div>
+      <div class="title sm">LEAVE?</div>
+      <div class="hint" id="leaveText" style="font-size:16px">The link to your rival closes and you both go back to the main menu. To race again you swap new codes.</div>
+      <div class="stack">
+        <button class="btn alt" id="btnLeaveYes" type="button">LEAVE LINK</button>
+        <button class="btn ghost" id="btnLeaveNo" type="button">STAY<small>ESC</small></button>
       </div>
     </div>
   </div>

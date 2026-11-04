@@ -23,6 +23,7 @@ src/
   riders.ts           the four rider models plus secret SKELLY, their stats and stat-to-physics multipliers
   riderSelect.ts      the spinning rider ring in the menu
   player.ts           rider physics, tricks, grinds, landings, combo scoring
+  scoring.ts          the speed multiplier on banked combos and the distance points per metre
   tricks.ts           the trick list and how each trick is input
   tutorial.ts         learn-by-doing practice courses
   game.ts             renderer, camera, input, HUD, menus, modes, settings
@@ -52,7 +53,7 @@ adding imports.
 ## Typing status
 
 `tsconfig.json` is strict. These modules are fully typed: `course`, `world`, `audio`, `scores`, `tricks`,
-`gamepad`, `riderSelect`, `secretCode`, `powerups`, `pickups`, `rival` and everything in `net/`.
+`gamepad`, `riderSelect`, `secretCode`, `powerups`, `pickups`, `rival`, `scoring` and everything in `net/`.
 
 These were ported as-is and still start with `// @ts-nocheck`, so the compiler doesn't check them yet:
 `player`, `game`, `city`, `riders`, `tutorial`. They behave exactly as before; typing them is the next step.
@@ -67,7 +68,9 @@ textures when they load; import it first in a test that needs it.
 
 - `course.test.ts`: same seed = same hill, different seeds differ, layout rules, the feature deck, the district
   shuffle bag, smooth bends, height field, rails (layout rules run on several seeds)
-- `player.test.ts`: headless rides at 60 fps: speed, steering, charged jumps, landing, a kickflip, rider stats
+- `player.test.ts`: headless rides at 60 fps: speed, steering, charged jumps, landing, a kickflip, rider stats, the
+  speed multiplier on a bank and the distance points
+- `scoring.test.ts`: speed multiplier steps and cap, distance rate and its total
 - `tricks.test.ts`: every input is unique, point scaling, input labels
 - `scores.test.ts`: ranking, ties, top 10, name cleaning, corrupt or blocked storage, swappable backend
 - `gamepad.test.ts`: pad detection, dead-zone, press/release edges, stick hysteresis, rumble
@@ -76,7 +79,8 @@ textures when they load; import it first in a test that needs it.
 - `secretCode.test.ts`: code sequences, junk input, wrong order, timeout between inputs
 - `net/*.test.ts`: invite/reply codes, the WebRTC link on fake peer connections, message validation, the code-swap
   steps, the session from handshake to rematch, and a pose copied off the real player matching on the rival model
-- `powerups.test.ts`: placement on several seeds (deterministic, leaves the course alone, track common / sky rare), touching,
+- `powerups.test.ts`: placement on several seeds (deterministic, leaves the course alone, track common / sky rare, any
+  three in a row different, the same however the segments are asked for), touching,
   timers, every effect on the real player, and that a real jump reaches every sky pickup
 
 ## Random hill
@@ -117,9 +121,10 @@ refuse to link instead of racing on hills that don't match. The connection layer
 (about one in every two segments) sit just above the snow, on the run-in to a ramp, or on top of a ground rail.
 Sky pickups sit only above kickers, big ramps, mega ramps and side quarterpipes, a little above where an easy jump
 peaks, so you have to commit to reach them; the test in `powerups.test.ts` rides real jumps to prove each one can be
-reached. Sky versions last about 50% longer (shield: 2 bails for 30 s instead of 1 for 20 s, time: +10 s). Grabbing a power that is already running
-refreshes its timer. Time chips only appear as time chips in the 2-minute mode; in endless the same spot gives
-another power. The tutorial has none.
+reached. Which power a pickup gives is dealt from shuffled bags (`BAGS`) in the order you meet them down the hill, track and
+sky as one line, so any three in a row are different; the 2-minute run and endless each have their own line (endless has
+no time chips). Sky versions last about 50% longer (shield: 2 bails for 30 s instead of 1 for 20 s, time: +10 s). Grabbing a power that is already running
+refreshes its timer. Time chips only exist in the 2-minute mode. The tutorial has none.
 
 Picking one up shows a pop-up at the top centre with its icon, name and a draining bar; after about a second it
 shrinks into its chip (boosts bottom left, shield bottom right) or, for a time chip, flies into the clock.

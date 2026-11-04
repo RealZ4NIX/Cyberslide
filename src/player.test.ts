@@ -291,3 +291,49 @@ describe('grinds never slow you down', () => {
     expect(p.speed).toBeGreaterThanOrEqual(80);
   });
 });
+
+describe('going fast and going far pay', () => {
+  it('a banked combo is multiplied by the speed you are doing when it banks', () => {
+    const slow = mkPlayer(),
+      fast = mkPlayer();
+    for (const [w, kmh] of [
+      [slow, 90],
+      [fast, 300],
+    ] as const) {
+      w.p.addCombo('Kickflip', 1000, false, 1);
+      w.p.speed = kmh / 3.6;
+      w.p.bank();
+    }
+    const total = (w: typeof slow) => w.events.find((e) => e.n === 'bank')?.d;
+    expect(total(slow)).toMatchObject({ total: 1200, speed: 1 });
+    expect(total(fast)).toMatchObject({ total: 1800, speed: 1.5 });
+    expect(fast.p.score).toBe(1800);
+  });
+
+  it('every new metre down the hill trickles in distance points', () => {
+    const { p } = mkPlayer();
+    run(p, 10);
+    expect(p.dist).toBeGreaterThan(100);
+    expect(p.stats.distPts).toBeGreaterThan(0);
+    expect(p.score).toBe(p.stats.distPts); // no tricks: all of it is distance
+    // close to the closed form (the trickle rounds down to whole points as it goes)
+    expect(p.stats.distPts).toBeGreaterThanOrEqual(Math.floor(p.dist) - 2);
+  });
+
+  it('riding back over the same metres pays nothing twice', () => {
+    const { p } = mkPlayer();
+    run(p, 4);
+    const pts = p.stats.distPts;
+    p.s -= 30; // as if pushed back up the hill
+    run(p, 0.2);
+    expect(p.stats.distPts).toBe(pts);
+  });
+
+  it('practice runs (distScore off) earn no distance points', () => {
+    const { p } = mkPlayer();
+    p.distScore = false;
+    run(p, 5);
+    expect(p.dist).toBeGreaterThan(20);
+    expect(p.score).toBe(0);
+  });
+});

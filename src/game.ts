@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { ND } from './nd';
 import { secretCode } from './secretCode';
 import { randomSeed } from './course';
+import { distRate } from './scoring';
 import { createConnector } from './net/link';
 import { createSession } from './net/session';
 import { initialStep, lobbyStep } from './net/linkSteps';
@@ -351,7 +352,7 @@ export function boot(): void {
   /* ---------- HUD ---------- */
   const el = {
     score: $('hudScore'), pts: $('hudPts'), mult: $('hudMult'), bar: $('hudBar'), time: $('hudTime'), timeLbl: $('hudTimeLbl'),
-    speed: $('hudSpeed'), speedBox: $('speedBox'), boost: $('hudBoost'), dist: $('hudDist'), banner: $('banner'), big: $('big'), feed: $('feed'), combo: $('combo'),
+    speed: $('hudSpeed'), smult: $('hudSpdMult'), speedBox: $('speedBox'), boost: $('hudBoost'), dist: $('hudDistM'), distRate: $('hudDistRate'), banner: $('banner'), big: $('big'), feed: $('feed'), combo: $('combo'),
     flash: $('flash'), spec: $('hudSpec'), specBox: $('specBox'), fail: $('fail')
   };
   const fmt = (n) => Math.round(n).toLocaleString('en-US');
@@ -364,7 +365,7 @@ export function boot(): void {
   }
   let bigT = 0;
   function big(text, cls) { el.big.textContent = text; el.big.className = 'show ' + (cls || ''); bigT = 1.1; }
-  let lastBanner = '', lastScore = -1, dispScore = 0, failT = 0, slowT = 0;
+  let lastBanner = '', lastScore = -1, lastSm = -1, lastDr = -1, dispScore = 0, failT = 0, slowT = 0;
   function showFail(reason, lost) {
     $('failWhy').textContent = reason || 'Wipeout';
     $('failPts').textContent = '-' + fmt(lost);
@@ -394,9 +395,13 @@ export function boot(): void {
       el.bar.style.width = (state === 'play' && player.state === 'ride' ? Math.max(0, c.timer / 2.2) * 100 : 100) + '%';
     }
     el.speed.textContent = Math.round(player.speed * 3.6);
+    const sm = player.speedMult();
+    if (sm !== lastSm) { el.smult.textContent = 'SPEED x' + sm.toFixed(1); el.smult.className = sm > 1 ? 'on t' + Math.round((sm - 1) * 10) : ''; lastSm = sm; }
     el.boost.style.width = (player.boostT > 0 ? Math.min(100, player.boostT / player.boostMax * 100) : 0) + '%';
     el.speedBox.classList.toggle('boost', player.boostT > 0);
     el.dist.textContent = fmt(player.dist) + ' m';
+    const dr = player.distScore ? Math.floor(distRate(player.distFar)) : 0;
+    if (dr !== lastDr) { el.distRate.textContent = dr ? '+' + dr + ' PTS/M' : ''; lastDr = dr; }
     el.spec.style.width = Math.round(player.special * 100) + '%';
     const full = player.special >= 1;
     el.specBox.classList.toggle('full', full);
@@ -527,7 +532,7 @@ export function boot(): void {
       if (n === 'crash') { toast('WIPEOUT  no worries, try again', 'info'); ND.audio.sfx('crash'); ND.audio.grind(false, 0); return; }   // practice: no FAIL drop
     }
     if (n === 'trick') { toast(d.name + (d.pts ? '  +' + fmt(d.pts) : '') + (d.x2 ? '  2X' : '') + (d.mix ? '  MIX x' + d.mix : d.chain > 1 ? '  CHAIN x' + d.chain : ''), 'trick', d.input); ND.audio.sfx('trick'); }
-    else if (n === 'bank') { toast('COMBO BANKED +' + fmt(d.total), 'bank'); big('+' + fmt(d.total), 'bank'); ND.audio.sfx('bank'); }
+    else if (n === 'bank') { toast('COMBO BANKED +' + fmt(d.total) + (d.speed > 1 ? '  SPEED x' + d.speed.toFixed(1) : ''), 'bank'); big('+' + fmt(d.total), 'bank'); ND.audio.sfx('bank'); }
     else if (n === 'crash' && d.shielded) { toast((d.reason || 'Wipeout').toUpperCase() + '  COMBO SHIELD  combo saved', 'shield'); big('SAVED', 'shield'); shieldFlash(); ND.audio.sfx('crash'); ND.audio.sfx('shield'); ND.audio.grind(false, 0); }
     else if (n === 'power') powerToast(d);
     else if (n === 'crash') { toast((d.reason || 'Wipeout').toUpperCase() + (d.lost ? '  combo lost -' + fmt(d.lost) : ''), 'bad'); if (d.lost > 0) showFail(d.reason, d.lost); else big(d.reason === 'Bad landing' ? 'BAD LANDING' : 'WIPEOUT', 'bad'); ND.audio.sfx('crash'); ND.audio.grind(false, 0); }
@@ -648,7 +653,7 @@ export function boot(): void {
   // dev server only: ?runlen=20 makes a 2 min run 20 s, for testing the end of a run (a production build always uses 120)
   const RUN_LEN = (import.meta.env.DEV && +new URLSearchParams(location.search).get('runlen')) || 120;
   let mode = 'timed', state = 'menu', timeLeft = 120, cd = 0, last = performance.now(), camHead = 0, camY = 0, camLook = 0, camDown = 0;
-  const overlays = { menu: $('menu'), pause: $('pause'), result: $('result'), tricks: $('tricks'), confirm: $('confirm'), options: $('options'), entry: $('entry'), board: $('board'), tutdone: $('tutdone'), link: $('link'), lobby: $('lobby') };
+  const overlays = { menu: $('menu'), pause: $('pause'), result: $('result'), tricks: $('tricks'), confirm: $('confirm'), options: $('options'), entry: $('entry'), board: $('board'), tutdone: $('tutdone'), link: $('link'), lobby: $('lobby'), leave: $('leave') };
   /* ---------- rider select card ---------- */
   const rcStats = $('rcStats');
   ND.STAT_KEYS.forEach(([k, label]) => {
@@ -680,18 +685,19 @@ export function boot(): void {
     if (!def.secret) try { localStorage.setItem(RIDER_KEY, ND.riderId); } catch (e) { /* ignore */ }   // a secret pick isn't saved: it's gone next session
     paintCard();
   }
-  /* secret rider: type SKELLY on the main menu, or press up up down down L1 L2 on a controller.
-     The unlock is in memory only, so after closing the game he's gone again. */
+  /* secret rider: type SKELLY on the main menu or in the 1v1 lobby (while you can still change riders), or press
+     up up down down L1 L2 on a controller. The unlock is in memory only, so after closing the game he's gone again. */
   const SECRET_ID = 'skelly';
   const skellyKeys = secretCode(['S', 'K', 'E', 'L', 'L', 'Y']);
   const skellyPad = secretCode(['up', 'up', 'down', 'down', 'L1', 'L2']);
-  const secretReady = () => state === 'menu' && navName === 'menu';
+  const secretReady = () => (state === 'menu' && navName === 'menu') || (state === 'link' && navName === 'lobby' && !!mp && !mp.session.ready);
   let unlockT = 0;
   function unlockSecret() {
     const fresh = ND.unlockRider(SECRET_ID), def = ND.riderDef(SECRET_ID);
     if (fresh) { ND.select.addRider(def); buildPips(); }
     else { const i = ND.RIDERS.indexOf(def); if (i !== ND.select.index) ND.select.step((i - ND.select.index + ND.RIDERS.length) % ND.RIDERS.length); }
     pickRider();
+    if (navName === 'lobby' && mp) mp.session.setInfo(meInfo());   // your rival sees the pick straight away
     ND.audio.init(); ND.audio.sfx(fresh ? 'fanfare' : 'sel');
     padNote(fresh ? 'SECRET RIDER UNLOCKED \u00b7 ' + def.name : def.name + ' IS BACK');
     const card = $('riderCard'); card.classList.remove('unlock'); void card.offsetWidth; card.classList.add('unlock');
@@ -715,6 +721,7 @@ export function boot(): void {
     tutdone: [['\u2191\u2193', 'Select'], ['Space', 'Confirm'], ['Esc', 'Menu']],
     link: [['\u2191\u2193', 'Select'], ['Space', 'Confirm'], ['Ctrl+V', 'Paste in box'], ['Esc', 'Back']],
     lobby: [['\u2191\u2193', 'Select'], ['\u2190\u2192', 'Rider'], ['Space', 'Confirm'], ['Esc', 'Leave']],
+    leave: [['\u2191\u2193', 'Select'], ['Space', 'Confirm'], ['Esc', 'Stay']],
     mpresult: [['\u2191\u2193', 'Select'], ['Space', 'Confirm']]
   };
   const NAVBAR_PAD = {
@@ -729,6 +736,7 @@ export function boot(): void {
     tutdone: [['\u2191\u2193', 'Select'], ['@b0', 'Confirm'], ['@b1', 'Menu']],
     link: [['\u2191\u2193', 'Select'], ['@b0', 'Confirm'], ['@b1', 'Back']],
     lobby: [['\u2191\u2193', 'Select'], ['\u2190\u2192', 'Rider'], ['@b0', 'Confirm'], ['@b1', 'Leave']],
+    leave: [['\u2191\u2193', 'Select'], ['@b0', 'Confirm'], ['@b1', 'Stay']],
     mpresult: [['\u2191\u2193', 'Select'], ['@b0', 'Confirm']]
   };
   function show(name, keep) {
@@ -855,6 +863,7 @@ export function boot(): void {
     player.resetAll(); ND.world.clear(); ND.world.update(player.s); ND.pickups.clear(!tut, m === 'timed');
     if (net) { player.x = ND.C(player.s) + (net.host ? -2.5 : 2.5); player.y = ND.H(player.x, player.s); }   // 1v1: side by side at the gate, host on the left
     if (tut) player.speedCap = ND.tutorial.cap();
+    player.distScore = !tut;   // practice runs don't earn distance points
     lastP = { x: player.x, y: player.y, s: player.s };
     timeLeft = RUN_LEN; cd = tut ? 2.6 : net ? net.cd : 3; state = 'countdown'; show(null); cdN = -1; el.big.className = '';
     el.timeLbl.textContent = m === 'timed' ? 'TIME' : 'ENDLESS';
@@ -935,7 +944,7 @@ export function boot(): void {
     $('resBest').textContent = fmt(Math.max(best, player.score));
     $('resCombo').textContent = fmt(st.bestCombo); $('resTricks').textContent = st.tricks; $('resGrinds').textContent = st.grinds;
     $('resCrash').textContent = st.crashes; $('resSpeed').textContent = Math.round(st.topSpeed * 3.6) + ' km/h';
-    $('resDist').textContent = fmt(player.dist) + ' m'; $('resAir').textContent = st.bestAir.toFixed(1) + ' s';
+    $('resDist').textContent = fmt(player.dist) + ' m'; $('resDistPts').textContent = st.distPts ? '+' + fmt(st.distPts) : ''; $('resAir').textContent = st.bestAir.toFixed(1) + ' s';
     $('resRank').hidden = true;
     mpResultSetup();
     show('result');
@@ -1159,7 +1168,8 @@ export function boot(): void {
   function lkErr(text) { const er = $('lkErr'); er.hidden = !text; er.textContent = text || ''; }
   /* back out of the code swap: one step at a time, then to the main menu */
   function linkBack() {
-    if (navName === 'lobby') { mpLeave(); toMenu(); return; }
+    if (navName === 'lobby') { askLeave(); return; }
+    if (navName === 'leave') { stayInLobby(); return; }
     if (lk && lk.mode && !(lk.step && lk.step.k === 'failed')) { mpLeave(); openLink(); return; }
     mpLeave(); toMenu();
   }
@@ -1235,7 +1245,12 @@ export function boot(): void {
     setBtn('btnLbReady', s.ready ? 'NOT READY' : 'READY', s.ready ? 'CHANGE YOUR RIDER' : 'LOCKS YOUR RIDER');
   }
   $('btnLbReady').onclick = () => { if (mp) mp.session.setReady(!mp.session.ready); };
-  $('btnLbLeave').onclick = () => { mpLeave(); toMenu(); };
+  /* leaving the lobby closes the link for both of you, so it asks first */
+  function askLeave() { show('leave'); navIdx = 1; navPaint(false); }   // STAY is preselected, so a double press can't leave by accident
+  function stayInLobby() { mpPaintKey = ''; show('lobby', true); if (mp) paintLobby(); }
+  $('btnLbLeave').onclick = askLeave;
+  $('btnLeaveYes').onclick = () => { mpLeave(); toMenu(); };
+  $('btnLeaveNo').onclick = stayInLobby;
   $('btnQuitLink').onclick = () => { mpLeave(); toMenu(); };
 
   /* ---------- results: side by side, rematch on a new hill ---------- */
@@ -1306,7 +1321,7 @@ export function boot(): void {
     if (s.phase === 'closed' && !mp.closedSeen) {
       mp.closedSeen = true;
       if (racing) { if (!s.rival.result) { toast('RIVAL LEFT  you win', 'info'); padNote('RIVAL LEFT THE RACE'); } }
-      else if (state === 'link' && navName === 'lobby') { const why = s.error === 'version' ? 'VERSION MISMATCH · BOTH REFRESH THE PAGE' : 'LINK LOST'; mpLeave(); toMenu(); padNote(why); return; }
+      else if (state === 'link' && (navName === 'lobby' || navName === 'leave')) { const why = s.error === 'version' ? 'VERSION MISMATCH · BOTH REFRESH THE PAGE' : 'LINK LOST'; mpLeave(); toMenu(); padNote(why); return; }
     }
     if (state === 'over' && navName === 'result') {
       if (s.phase === 'lobby') { openLobby(); return; }
