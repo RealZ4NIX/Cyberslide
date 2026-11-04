@@ -639,8 +639,11 @@
   body.touch #hud { zoom: var(--hudz, 1); }
   body.touch .ov, body.touch .rcard, body.touch #padNote { zoom: var(--menuz, 1); }
   body.touch .tl, body.touch .tr { top: calc((6px + env(safe-area-inset-top, 0px)) / var(--hudz, 1)); }
-  body.touch #specBox { width: var(--specw, 320px); }
-  body.touch .bl { left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px) + clamp(26px, 4.4vw, 38px) + 10px); justify-items: center; gap: 2px; padding: 0 10px;
+  body.touch #specBox { width: var(--specw, 256px); }   /* 80% of the PC bar */
+  body.touch .specbar { height: clamp(21px, 3.5vw, 30px); border-width: 2px; }
+  body.touch .specbar span { font-size: clamp(12px, 2.1vw, 18px); -webkit-text-stroke-width: 2px; }
+  body.touch #specBox canvas { height: 106px; }
+  body.touch .bl { left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px) + clamp(21px, 3.5vw, 30px) + 10px); justify-items: center; gap: 2px; padding: 0 10px;
     border-left: 0; background: none; clip-path: none; }
   body.touch #pups { bottom: calc((var(--tpad) + 30px + env(safe-area-inset-bottom, 0px)) / var(--hudz, 1)); }
   body.touch #pupsR { bottom: calc((var(--tdia) + 22px + env(safe-area-inset-bottom, 0px)) / var(--hudz, 1)); }

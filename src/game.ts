@@ -214,7 +214,7 @@ export function boot(): void {
     const ts = S.tSize, pad = Math.min(176, 0.36 * h) * ts, dia = Math.min(212, 0.44 * h) * ts;
     const st = document.documentElement.style;
     st.setProperty('--hudz', String(hudZ)); st.setProperty('--menuz', String(menuZ));
-    st.setProperty('--specw', Math.round(Math.max(120, Math.min(360, w - pad - dia - 80)) / hudZ) + 'px');
+    st.setProperty('--specw', Math.round(0.8 * Math.max(120, Math.min(360, w - pad - dia - 80)) / hudZ) + 'px');   // 80% of the room between the controls
   }
   function checkOrient() {
     fitUi();
