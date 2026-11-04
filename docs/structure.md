@@ -7,6 +7,8 @@ tests and new code should import.
 
 ```
 index.html            page markup (menus, HUD, overlays); loads src/main.ts
+public/               copied as-is into the build: favicon.svg, favicon.ico, apple-touch-icon.png
+docs/brand/           the icon source (icon.svg) and the GitHub social preview image
 src/
   main.ts             entry: imports the modules in order, then boots the game
   nd.ts               shared namespace
