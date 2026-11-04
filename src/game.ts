@@ -204,7 +204,20 @@ export function boot(): void {
     else if (e.pointerType === 'mouse' && dev === 'touch') setDevice('kb');
   }, true);
   /* landscape only on touch: a portrait phone gets a "rotate" screen, and a run in progress pauses */
+  /* on touch the HUD and the menus scale with the screen height: a phone gets the PC layout, smaller (styles.css: --hudz,
+     --menuz). The controls keep their size, so the special bar's width is worked out to fit between them. */
+  let hudZ = 1;
+  function fitUi() {
+    const t = dev === 'touch', h = innerHeight, w = innerWidth, cl = (v, a, b) => Math.max(a, Math.min(b, v));
+    hudZ = t ? cl(h / 600, 0.5, 1) : 1;
+    const menuZ = t ? cl(h / 600, 0.55, 1) : 1;
+    const ts = S.tSize, pad = Math.min(176, 0.36 * h) * ts, dia = Math.min(212, 0.44 * h) * ts;
+    const st = document.documentElement.style;
+    st.setProperty('--hudz', String(hudZ)); st.setProperty('--menuz', String(menuZ));
+    st.setProperty('--specw', Math.round(Math.max(120, Math.min(360, w - pad - dia - 80)) / hudZ) + 'px');
+  }
   function checkOrient() {
+    fitUi();
     const port = dev === 'touch' && innerHeight > innerWidth * 1.05;
     document.body.classList.toggle('portrait', port);
     if (port && state === 'play' && !navName) pause();
@@ -263,7 +276,7 @@ export function boot(): void {
     if (dev === d) return;
     dev = d; document.body.classList.toggle('touch', d === 'touch');
     refreshKeyLabels(); paintNavbar(); if (optOpen) buildOptions();
-    if (d !== 'touch') checkOrient();   // a keyboard or a controller plays in any orientation
+    checkOrient();   // rescales the UI; a keyboard or a controller plays in any orientation
   }
   let padNoteT = 0;
   function padNote(text) {
@@ -669,7 +682,7 @@ export function boot(): void {
       if (!target) { popLand(); return; }
       const a = pop.box.getBoundingClientRect(), b = target.getBoundingClientRect();
       const sc = Math.max(0.2, Math.min(1, b.height / Math.max(1, a.height)));
-      const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top + b.height / 2 - (a.top + a.height / 2);
+      const dx = (b.left + b.width / 2 - (a.left + a.width / 2)) / hudZ, dy = (b.top + b.height / 2 - (a.top + a.height / 2)) / hudZ;   // screen pixels to the scaled HUD's own
       pop.phase = 'fly'; pop.t = 0; pop.el.className = 'show fly';
       pop.box.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + sc + ')'; pop.box.style.opacity = '0.25';
     } else if (pop.phase === 'fly' && pop.t >= FLY_T) popLand();
@@ -1503,6 +1516,7 @@ export function boot(): void {
     $('crt').hidden = !S.crt; $('fps').hidden = !S.fps;
     if (lastRes !== S.res) { lastRes = S.res; resize(); }
     touch.setLayout({ size: S.tSize, alpha: S.tAlpha / 100, swap: S.tSwap });
+    fitUi();
   }
   function say(t) { $('optMsg').textContent = t || ''; }
   function section(title) { const h = mk('div', 'opt-sec', title), g = mk('div', 'opt-grid brk'); $('optBody').appendChild(h); $('optBody').appendChild(g); return g; }
