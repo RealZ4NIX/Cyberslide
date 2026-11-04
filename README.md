@@ -44,6 +44,7 @@ bends, launch off kickers and quarterpipes, flip and grab in the air, then tap *
 ## Features
 
 - **Two modes:** a 2-minute score attack and an endless run
+- **1V1 LINK:** race a friend online on the same random hill, no account or server
 - **64 tricks:** flip tricks, grab tricks and specials, each a short arrow sequence plus one button
 - **Combos that pay:** a spin or flip mixed with tricks in one jump scores as one big trick
 - **Perfect landings:** time your tap to land clean, get a speed boost and build a perfect streak
@@ -118,13 +119,29 @@ quarterpipes and are stronger. Grabbing one that is already running refreshes it
   </tr>
 </table>
 
+## 1V1 Link
+
+Race a friend on the same random hill for 2 minutes; the higher score wins.
+
+1. Both players open the same version of the game (refresh if the lobby says the versions differ).
+2. Pick **1V1 LINK** on the main menu. The first time, type the name your rival will see over your rider.
+3. Host: **HOST**, copy the invite and send it to your friend in any chat.
+4. Friend: **JOIN**, paste the invite, then copy the reply and send it back.
+5. Host: paste the reply. The link connects straight from browser to browser (WebRTC).
+6. Pick your rider with ← →, both press **READY** and you drop on the same countdown.
+
+During the race you see your rival's rider doing their tricks live, with their name and score above them and the
+gap in the top right. Power-ups are your own, riders pass through each other, and Esc opens a menu over the running
+race (there is no pause or restart). After the run, **REMATCH** gives you both a brand new hill. Runs count for your
+local scoreboard. Some school or office networks block direct connections; try another network if it won't link.
+
 ## Develop
 
 Built with Vite, TypeScript and three.js. The soundtrack and sound effects are generated live with WebAudio.
 
 ```sh
 npm install
-npm run dev          # local server with hot reload
+npm run dev          # local server with hot reload (add ?runlen=20 to the URL for short 2-minute runs)
 npm test             # unit tests (Vitest)
 npm run typecheck    # tsc, strict
 npm run format       # Prettier

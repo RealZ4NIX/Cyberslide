@@ -523,3 +523,38 @@
     100% { opacity: 0; transform: scale(1.8); letter-spacing: .25em; filter: blur(4px); }
   }
   @media (prefers-reduced-motion: reduce) { #cdNum.hit, #big.show.go { animation: none; opacity: 1; } #cdNum.hit::before, #cdNum.hit::after { animation: none; } }
+
+  /* ---------- 1v1 link: menu button, code swap, lobby, rival HUD, versus results ---------- */
+  .btn.vs { --bc: #b07cff; --fill: rgba(176,124,255,.14); }
+  .lk-code { --bc: var(--cyan); display: grid; gap: 6px; padding: 10px 12px; width: min(440px, 100%); }
+  #lkInBox { --bc: var(--pink); }
+  .lk-code textarea { width: 100%; box-sizing: border-box; resize: none; font: 700 12px/1.35 var(--body); letter-spacing: .04em; color: var(--paper); background: rgba(7,4,26,.85);
+    border: 1px solid var(--edge); padding: 7px 9px; word-break: break-all; }
+  .lk-code textarea:focus { outline: 2px solid var(--pink); outline-offset: 1px; }
+  .lk-code textarea[readonly] { color: var(--cyan); cursor: copy; }
+  .lk-err { width: min(440px, 100%); color: var(--gold); font-weight: 700; font-size: 13px; letter-spacing: .1em; }
+  .vs { --bc: #b07cff; display: grid; gap: 6px; padding: 12px 16px; width: min(440px, 100%); box-sizing: border-box; }
+  .vs-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto auto; align-items: baseline; gap: 10px; }
+  .vs-tag { font-size: 11px; letter-spacing: .24em; color: var(--dim); font-weight: 700; }
+  .vs-name { font-family: var(--display); font-style: italic; font-size: 20px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vs-rider { --rc: var(--cyan); font-weight: 700; font-size: 12px; letter-spacing: .14em; color: var(--rc); text-shadow: 0 0 8px color-mix(in srgb, var(--rc) 60%, transparent); }
+  .vs-st { min-width: 74px; text-align: right; font-weight: 700; font-size: 12px; letter-spacing: .12em; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .vs-st.on { color: var(--gold); }
+  #resVs .vs-st { font-family: var(--display); font-style: italic; font-size: 20px; letter-spacing: 0; color: var(--paper); }
+  #resVs .vs-row.win .vs-st { color: var(--gold); }
+  .vs-verdict { font-family: var(--display); font-style: italic; font-size: 26px; letter-spacing: .04em; color: #b07cff; text-shadow: 2px 2px 0 var(--ink2); }
+  .vs-verdict.win { color: var(--gold); text-shadow: 2px 2px 0 var(--pink), 0 0 18px rgba(255,210,63,.45); }
+  .vs-verdict.lose { color: var(--pink); }
+  .vs-verdict.wait { color: var(--dim); animation: blink 1s steps(2) infinite; }
+  .lb-ping { font-size: 12px; letter-spacing: .16em; font-weight: 700; }
+  #hudRival { top: 128px; right: max(16px, env(safe-area-inset-right, 0px)); text-align: right; padding: 6px 14px 7px 26px; border-right: 3px solid #b07cff;
+    background: linear-gradient(270deg, rgba(7,4,26,.72), rgba(7,4,26,0)); clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%); }
+  #hudRival .lbl { justify-content: flex-end; color: #b07cff; }
+  #hudRival .lbl::before { order: 2; transform: scaleX(-1); background: #b07cff; box-shadow: 0 0 6px #b07cff; }
+  .hr-line { display: flex; justify-content: flex-end; align-items: baseline; gap: 10px; font-variant-numeric: tabular-nums; }
+  #hrScore { font-family: var(--display); font-style: italic; font-size: clamp(18px, 3vw, 26px); color: #fff; text-shadow: 2px 2px 0 #5a2a9a; }
+  #hrGap { font-weight: 700; font-size: 13px; letter-spacing: .06em; min-width: 64px; }
+  #hrGap.up { color: var(--cyan); }
+  #hrGap.down { color: var(--pink); }
+  #hrGap.done { color: var(--dim); letter-spacing: .16em; }
+  @media (prefers-reduced-motion: reduce) { .vs-verdict.wait { animation: none; } }

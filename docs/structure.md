@@ -28,6 +28,14 @@ src/
   gamepad.ts          controller reading: dead-zone, edge detection, glyph names, rumble
   scores.ts           local scoreboard with a swappable backend
   secretCode.ts       watches typed letters or controller buttons for a cheat-code sequence
+  rival.ts            the other rider in a 1v1 link: their model posed from received frames, glow, name tag
+  net/
+    codes.ts          invite/reply codes: the WebRTC offer/answer, compressed, with the build id inside
+    link.ts           WebRTC peer connection: a reliable channel for messages, an unreliable one for poses
+    protocol.ts       every 1v1 message and its validation
+    session.ts        one link from lobby to rematch: hello, ready, the host's seed, poses, scores, results
+    linkSteps.ts      the code-swap screens as a pure state machine
+    pose.ts           the rider's whole look as one flat array: capture, blend, apply
 
   *.test.ts           tests sit next to the module they cover
   test-utils/         fake canvas/DOM and in-memory localStorage for tests
@@ -42,7 +50,7 @@ adding imports.
 ## Typing status
 
 `tsconfig.json` is strict. These modules are fully typed: `course`, `world`, `audio`, `scores`, `tricks`,
-`gamepad`, `riderSelect`, `secretCode`, `powerups`, `pickups`.
+`gamepad`, `riderSelect`, `secretCode`, `powerups`, `pickups`, `rival` and everything in `net/`.
 
 These were ported as-is and still start with `// @ts-nocheck`, so the compiler doesn't check them yet:
 `player`, `game`, `city`, `riders`, `tutorial`. They behave exactly as before; typing them is the next step.
@@ -64,6 +72,8 @@ textures when they load; import it first in a test that needs it.
 - `audio.test.ts`: safe before the context exists, mixer setup, every sound effect, music scheduling
 - `riders.test.ts`: stats, multipliers, every model builds, the secret rider unlock
 - `secretCode.test.ts`: code sequences, junk input, wrong order, timeout between inputs
+- `net/*.test.ts`: invite/reply codes, the WebRTC link on fake peer connections, message validation, the code-swap
+  steps, the session from handshake to rematch, and a pose copied off the real player matching on the rival model
 - `powerups.test.ts`: placement on several seeds (deterministic, leaves the course alone, track common / sky rare), touching,
   timers, every effect on the real player, and that a real jump reaches every sky pickup
 
@@ -80,6 +90,24 @@ contents, bends, power-up spots and city scenery, so one seed always rebuilds th
 - **Run-in.** One calm start segment (70 m) before the first feature.
 - **Districts** are scenery only. Their order is a shuffle bag of all five (`districtAt`), each lasting 6 segments
   (420 m); a district never follows itself, not even across a reshuffle.
+
+## 1v1 link
+
+Two browsers connect directly over WebRTC (`net/link.ts`); there is no server. The host's invite code is its WebRTC
+offer, the guest's reply code its answer, both deflated and base64url-encoded with the build id inside
+(`net/codes.ts`). The build id is the package version plus the commit (`vite.config.ts`), so two different deploys
+refuse to link instead of racing on hills that don't match. The connection layer is adapted from Drifta.
+
+- **Same hill.** When both are ready the host rolls a seed and sends it with a 3 s countdown; the guest subtracts half
+  the measured round trip, so both drop together. The seed builds the whole run (course, power-ups, city), so the
+  hill is identical on both sides without sending any of it.
+- **The rival.** 20 times a second each game sends its rider pose (`net/pose.ts`: 24 numbers covering position, body
+  and board rotation, flips, grab pose, arms, crouch). The other side draws it 0.1 s behind real time, blending
+  between the two frames around that moment (angles the short way round), with the sender's own rider model.
+  Scores go 4 times a second over the reliable channel. Nothing collides and pickups are per player.
+- **Flow.** Lobby (pick riders, ready locks your pick) → race → results side by side → both ask for a rematch and the
+  host deals a new seed, or either player takes both back to the lobby. Esc in a race opens the menu over the
+  running game. If the rival drops mid-race you keep riding and win.
 
 ## Power-ups
 

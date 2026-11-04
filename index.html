@@ -21,6 +21,10 @@
       <div id="hudTime">2:00</div>
       <div id="hudDist">0 m</div>
     </div>
+    <div id="hudRival" hidden>
+      <div class="lbl">VS <span id="hrName"></span></div>
+      <div class="hr-line"><span id="hrScore">0</span><b id="hrGap"></b></div>
+    </div>
     <div id="feed"></div>
     <div class="bl" id="speedBox"><div class="spd"><span id="hudSpeed">0</span><small>km/h</small></div><div class="boostbar"><i id="hudBoost"></i></div></div>
     <div id="specBox"><canvas id="specFx" width="187" height="44"></canvas><div class="specbar"><i id="hudSpec"></i><span id="specLbl">SPECIAL</span></div></div>
@@ -61,6 +65,7 @@
         <button class="btn" id="btnTimed" type="button">2 MIN RUN<small>PRESS 1 &middot; BEST <span id="bestTimed">0</span></small></button>
         <button class="btn alt" id="btnEndless" type="button">ENDLESS<small>PRESS 2 &middot; BEST <span id="bestEndless">0</span></small></button>
         <button class="btn tut" id="btnTutorial" type="button">TUTORIAL<small id="tutSub">LEARN BY DOING</small></button>
+        <button class="btn vs" id="btnLink" type="button">1V1 LINK<small>RACE A FRIEND ONLINE</small></button>
         <button class="btn ghost" id="btnBoard" type="button">SCOREBOARD<small>TOP 10 RUNS</small></button>
         <button class="btn ghost" id="btnTricks" type="button">TRICKBOOK<small>INPUTS &amp; COMBOS</small></button>
         <button class="btn ghost" id="btnOptions" type="button">OPTIONS<small>AUDIO, KEYS, GRAPHICS</small></button>
@@ -85,13 +90,14 @@
 
   <div class="ov" id="pause" hidden>
     <div class="panel gut">
-      <div class="crumb">Run suspended <b>// paused</b></div>
-      <div class="title sm">PAUSED</div>
+      <div class="crumb" id="pzCrumb">Run suspended <b>// paused</b></div>
+      <div class="title sm" id="pzTitle">PAUSED</div>
       <div class="stack">
         <button class="btn" id="btnResume" type="button">RESUME<small>ESC</small></button>
         <button class="btn alt" id="btnEnd" type="button">END RUN<small>SEE YOUR RESULTS</small></button>
         <button class="btn ghost" id="btnRestart" type="button">RESTART</button>
         <button class="btn ghost" id="btnMenu" type="button">MAIN MENU</button>
+        <button class="btn ghost" id="btnQuitLink" type="button" hidden>QUIT RACE<small>YOU FORFEIT</small></button>
         <button class="btn ghost" id="btnTricks2" type="button">TRICKBOOK</button>
         <button class="btn ghost" id="btnOptions2" type="button">OPTIONS</button>
       </div>
@@ -159,6 +165,11 @@
       <div class="sub" id="resTitle">TIME UP</div>
       <div><span class="big-score" id="resScore">0</span><span class="badge" id="resBadge" hidden>NEW BEST</span></div>
       <div id="resRank" hidden></div>
+      <div class="vs brk" id="resVs" hidden>
+        <div class="vs-verdict" id="resVerdict">WAITING FOR RIVAL</div>
+        <div class="vs-row" id="rvMe"><span class="vs-tag">YOU</span><b class="vs-name"></b><span class="vs-rider"></span><span class="vs-st"></span></div>
+        <div class="vs-row" id="rvRival"><span class="vs-tag">RIVAL</span><b class="vs-name"></b><span class="vs-rider"></span><span class="vs-st"></span></div>
+      </div>
       <div class="stats brk">
         <div>Personal best <b id="resBest">0</b></div>
         <div>Best combo <b id="resCombo">0</b></div>
@@ -171,8 +182,11 @@
       </div>
       <div class="stack">
         <button class="btn" id="btnAgain" type="button">RUN AGAIN</button>
+        <button class="btn" id="btnRematch" type="button" hidden>REMATCH<small>NEW HILL</small></button>
+        <button class="btn alt" id="btnResLobby" type="button" hidden>LOBBY<small>CHANGE RIDERS</small></button>
         <button class="btn ghost" id="btnBoard2" type="button">SCOREBOARD</button>
         <button class="btn ghost" id="btnMenu2" type="button">MAIN MENU</button>
+        <button class="btn ghost" id="btnResLeave" type="button" hidden>LEAVE LINK</button>
       </div>
     </div>
   </div>
@@ -181,9 +195,9 @@
     <div class="panel gut">
       <div class="crumb">Run report <b>// new record</b></div>
       <div class="sub" id="enSub">2 MIN RUN</div>
-      <div class="title sm">HIGH SCORE</div>
-      <div><span class="big-score" id="enScore">0</span></div>
-      <div class="hint">Type your name: up to 8 letters or digits, fewer is fine</div>
+      <div class="title sm" id="enTitle">HIGH SCORE</div>
+      <div id="enScoreBox"><span class="big-score" id="enScore">0</span></div>
+      <div class="hint" id="enHint">Type your name: up to 8 letters or digits, fewer is fine</div>
       <div class="inits" id="enSlots"></div>
       <div class="stack">
         <button class="btn" id="btnEnSave" type="button">SAVE<small>SPACE</small></button>
@@ -200,6 +214,43 @@
       <div class="bd brk" id="bdList"></div>
       <div class="hint" id="bdNote"></div>
       <div class="stack"><button class="btn" id="btnBdBack" type="button">BACK<small>ESC</small></button></div>
+    </div>
+  </div>
+
+  <div class="ov" id="link" hidden>
+    <div class="panel gut">
+      <div class="crumb">Netlink.sys <b id="lkCrumb">// 1v1 link</b></div>
+      <div class="title sm">1V1 LINK</div>
+      <div class="hint" id="lkText"></div>
+      <div class="lk-code brk" id="lkOutBox" hidden><div class="lbl" id="lkOutLbl">YOUR INVITE</div><textarea id="lkOut" rows="3" readonly spellcheck="false" aria-labelledby="lkOutLbl"></textarea></div>
+      <div class="lk-code brk" id="lkInBox" hidden><div class="lbl" id="lkInLbl">PASTE THEIR REPLY</div><textarea id="lkIn" rows="3" spellcheck="false" autocomplete="off" aria-labelledby="lkInLbl" placeholder="CYBERSLIDE-R-..."></textarea></div>
+      <div class="lk-err" id="lkErr" role="alert" hidden></div>
+      <div class="stack">
+        <button class="btn" id="btnLkHost" type="button">HOST<small>MAKE AN INVITE</small></button>
+        <button class="btn alt" id="btnLkJoin" type="button">JOIN<small>PASTE AN INVITE</small></button>
+        <button class="btn" id="btnLkCopy" type="button">COPY CODE<small>SEND IT IN ANY CHAT</small></button>
+        <button class="btn alt" id="btnLkPaste" type="button">PASTE CODE<small>FROM CLIPBOARD</small></button>
+        <button class="btn ghost" id="btnLkGo" type="button">CONNECT</button>
+        <button class="btn" id="btnLkRetry" type="button">TRY AGAIN</button>
+        <button class="btn ghost" id="btnLkBack" type="button">BACK<small>ESC</small></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ov" id="lobby" hidden>
+    <div class="panel gut">
+      <div class="crumb">Link established <b>// lobby</b></div>
+      <div class="title sm">1V1 LINK</div>
+      <div class="vs brk">
+        <div class="vs-row" id="lbMe"><span class="vs-tag">YOU</span><b class="vs-name"></b><span class="vs-rider"></span><span class="vs-st"></span></div>
+        <div class="vs-row" id="lbRival"><span class="vs-tag">RIVAL</span><b class="vs-name"></b><span class="vs-rider"></span><span class="vs-st"></span></div>
+      </div>
+      <div class="hint" id="lbText"></div>
+      <div class="hint lb-ping" id="lbPing"></div>
+      <div class="stack">
+        <button class="btn" id="btnLbReady" type="button">READY<small>LOCKS YOUR RIDER</small></button>
+        <button class="btn ghost" id="btnLbLeave" type="button">LEAVE LINK<small>ESC</small></button>
+      </div>
     </div>
   </div>
 
