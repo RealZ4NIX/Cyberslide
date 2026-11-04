@@ -728,8 +728,8 @@ export function boot(): void {
     if (!def.secret) try { localStorage.setItem(RIDER_KEY, ND.riderId); } catch (e) { /* ignore */ }   // a secret pick isn't saved: it's gone next session
     paintCard();
   }
-  /* secret rider: type SKELLY on the main menu or in the 1v1 lobby (while you can still change riders), or press
-     up up down down L1 L2 on a controller. The unlock is in memory only, so after closing the game he's gone again. */
+  /* secret rider: type SKELLY on the main menu or in the 1v1 lobby (while you can still change riders), press
+     up up down down L1 L2 on a controller, or on a touch screen swipe up up down down and tap the rider card's left then right arrow. The unlock is in memory only, so after closing the game he's gone again. */
   const SECRET_ID = 'skelly';
   const skellyKeys = secretCode(['S', 'K', 'E', 'L', 'L', 'Y']);
   const skellyPad = secretCode(['up', 'up', 'down', 'down', 'L1', 'L2']);
@@ -747,8 +747,18 @@ export function boot(): void {
     clearTimeout(unlockT); unlockT = setTimeout(() => card.classList.remove('unlock'), 1400);
     if (S.rumble && PADK.connected) { PADK.rumble(0.9, 0.6, 220); setTimeout(() => PADK.rumble(0.4, 0.9, 260), 260); }
   }
-  $('rcPrev').onclick = () => riderStep(-1);
-  $('rcNext').onclick = () => riderStep(1);
+  $('rcPrev').onclick = () => { riderStep(-1); padSecret('L1'); };   // the card's arrows stand in for L1 / L2 in the secret code
+  $('rcNext').onclick = () => { riderStep(1); padSecret('L2'); };
+  /* touch: the controller's code drawn on the screen. A vertical swipe anywhere on the menu counts as up or down
+     (touch events, not pointer events: the menu may scroll under the finger, which cancels a pointer) */
+  let swipe = null;
+  addEventListener('touchstart', (e) => { swipe = e.touches.length === 1 && secretReady() ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
+  addEventListener('touchend', (e) => {
+    const s0 = swipe; swipe = null;
+    if (!s0 || !secretReady() || !e.changedTouches.length) return;
+    const dx = e.changedTouches[0].clientX - s0.x, dy = e.changedTouches[0].clientY - s0.y;
+    if (Math.abs(dy) > 50 && Math.abs(dy) > Math.abs(dx) * 1.5) padSecret(dy < 0 ? 'up' : 'down');
+  }, { passive: true });
   paintCard();
   const navMem = {};
   let navIdx = 0, navCol = 0, navName = null;
