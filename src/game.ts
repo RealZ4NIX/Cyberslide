@@ -27,6 +27,27 @@ export function boot(): void {
   const DEF = { music: 100, sfx: 100, mute: false, chips: true, res: 300, fx: 1, fov: 62, crt: false, fps: false, padDead: 15, rumble: true, tSize: 1, tAlpha: 70, tSwap: false };
   // phones and tablets: a finger is the main pointer. They start on touch controls, and on a lighter resolution until the player picks one
   const COARSE = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+  /* phones and tablets can install the game to the home screen (public/manifest.webmanifest). The manifest is only
+     linked here, so a PC browser never offers to install it */
+  if (COARSE && !document.querySelector('link[rel="manifest"]')) {
+    const ml = document.createElement('link'); ml.rel = 'manifest'; ml.href = './manifest.webmanifest'; document.head.appendChild(ml);
+  }
+  /* iPhone Safari ignores the page's "no zoom" setting: a quick double tap or a pinch (two thumbs on the controls)
+     zooms the whole game. Touch screens block both here; a button tapped twice quickly still gets both taps */
+  if (COARSE) {
+    for (const t of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(t, (e) => e.preventDefault(), { passive: false });
+    document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+    let lastTap = -1e9;
+    document.addEventListener('touchend', (e) => {
+      const now = e.timeStamp, t = e.target && e.target.closest ? e.target : null;
+      if (now - lastTap < 380 && !(t && t.closest('textarea, input'))) {
+        e.preventDefault();
+        const b = t && t.closest('button');
+        if (b && !b.disabled) b.click();
+      }
+      lastTap = now;
+    }, { passive: false });
+  }
   // controller buttons (standard mapping indexes: 0 cross, 1 circle, 2 square, 3 triangle, 4 L1, 5 R1, 6 L2, 7 R2, 8 create, 9 options, 10 L3, 11 R3, 17 touchpad)
   const DEF_PAD = { space: [0, null], trick: [6, 7], grab: [1, null], flip: [2, null], restart: [8, null], pause: [9, null], mute: [17, null] };
   const PAD_RESERVED = [12, 13, 14, 15, 16];   // D-pad (steering and menus) and the PS button
@@ -1632,6 +1653,21 @@ export function boot(): void {
   }
   function openOptions(from) { optOpen = true; optFrom = from; say(''); buildOptions(); show('options'); $('options').scrollTop = 0; }
   function closeOptions() { stopListen(); optOpen = false; show(optFrom, true); }
+  /* Android only: an INSTALL APP button on the main menu while the browser offers it (iPhones never do; there it is
+     Share, then Add to Home Screen). Gone once installed, and never shown inside the installed app */
+  const ANDROID = /Android/i.test(navigator.userAgent);
+  let installEvt = null;
+  addEventListener('beforeinstallprompt', (e) => {
+    if (!ANDROID) return;
+    e.preventDefault(); installEvt = e;
+    $('btnInstall').hidden = false; if (navName === 'menu') navPaint(false);
+  });
+  addEventListener('appinstalled', () => { installEvt = null; $('btnInstall').hidden = true; padNote('CYBERSLIDE INSTALLED'); if (navName === 'menu') navPaint(false); });
+  $('btnInstall').onclick = () => {
+    const ev = installEvt; if (!ev) return;
+    ev.prompt();
+    ev.userChoice.then((c) => { if (c && c.outcome === 'accepted') { installEvt = null; $('btnInstall').hidden = true; if (navName === 'menu') navPaint(false); } }, () => {});
+  };
   $('btnOptions').onclick = () => openOptions('menu');
   $('btnOptions2').onclick = () => openOptions('pause');
   $('btnOptBack').onclick = closeOptions;

@@ -149,5 +149,10 @@ straight into FLIP or GRAB.
   power chips move up above the controls (`body.touch` rules at the end of `styles.css`).
 - **Menus** are tapped; there is no key bar at the bottom. Names are typed on a letter pad, and the 1v1 code goes out
   through the phone's share sheet when there is one.
+- **Home screen app.** `public/manifest.webmanifest` plus icons; `game.ts` links the manifest on touch devices only, so
+  a PC browser never offers to install. Android shows INSTALL APP on the main menu while Chrome offers the install;
+  iPhones save it with Share, Add to Home Screen, and open it without Safari's bars.
+- **No zooming.** iPhone Safari ignores the page's no-zoom setting, so on touch screens `game.ts` blocks pinch
+  gestures and the second tap of a double tap (a button still gets both taps), and text boxes use 16px text.
 - **Options.** Button size, opacity and a mirrored layout replace the key bindings. Phones start on the CRUNCHY
   resolution until the player picks one.

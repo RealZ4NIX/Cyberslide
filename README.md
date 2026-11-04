@@ -56,7 +56,8 @@ bends, launch off kickers and quarterpipes, flip and grab in the air, then tap *
 - **Learn-by-doing tutorial** from your first carve to your first special
 - **Local scoreboard** with the top 10 runs per mode
 - **Phones and tablets:** plays in the browser in landscape with a touch D-pad and four buttons, sized and laid out
-  your way in the options
+  your way in the options. Install it to the home screen to play fullscreen (Android: INSTALL APP in the menu, iPhone:
+  Share, then Add to Home Screen)
 - **Full controller support:** analog steering, rumble, menu navigation, remapping and auto-switching button prompts
 - **Options** for audio, key bindings, field of view, resolution, a CRT filter and more
 

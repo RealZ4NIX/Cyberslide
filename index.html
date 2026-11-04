@@ -1,7 +1,12 @@
 <!doctype html>
 <html lang="en">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<!-- saved to an iPhone home screen it opens without Safari's bars; the manifest is added by game.ts on touch devices only -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cyberslide">
 <title>Cyberslide</title>
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -74,6 +79,7 @@
         <button class="btn ghost" id="btnBoard" type="button">SCOREBOARD<small>TOP 10 RUNS</small></button>
         <button class="btn ghost" id="btnTricks" type="button">TRICKBOOK<small>INPUTS &amp; COMBOS</small></button>
         <button class="btn ghost" id="btnOptions" type="button">OPTIONS<small>AUDIO, KEYS, GRAPHICS</small></button>
+        <button class="btn alt" id="btnInstall" type="button" hidden>INSTALL APP<small>FULLSCREEN FROM YOUR HOME SCREEN</small></button>
       </div>
       <div class="keys brk">
         <div><kbd data-k="left">&larr;</kbd><kbd data-k="right">&rarr;</kbd> <b>Carve</b></div>
