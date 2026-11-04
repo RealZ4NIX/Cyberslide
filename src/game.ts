@@ -231,7 +231,9 @@ export function boot(): void {
     clearTimeout(padNoteT); padNoteT = setTimeout(() => n.classList.remove('show'), 2600);
   }
   function toggleMute() { const m = ND.audio.toggleMute(); S.mute = m; saveS(); toast(m ? 'SOUND OFF' : 'SOUND ON', 'info'); if (optOpen) buildOptions(); }
+  const padBadge = $('padBadge');   // "controller supported" in the main menu: only while no pad is connected
   function padStatus(on) {
+    padBadge.hidden = on;
     padNote(on ? PADK.label + ' CONNECTED' : 'CONTROLLER DISCONNECTED');
     if (on) { setDevice('pad'); refreshKeyLabels(); if (optOpen) buildOptions(); }   // refresh even if already on 'pad': a different pad may show different glyphs
     else { setDevice('kb'); if (state === 'play' && !mpMenu) pause(); if (optOpen) buildOptions(); }
