@@ -55,6 +55,8 @@ bends, launch off kickers and quarterpipes, flip and grab in the air, then tap *
 - **Four riders** with their own stats and weaknesses (and maybe one more, if you know the code)
 - **Learn-by-doing tutorial** from your first carve to your first special
 - **Local scoreboard** with the top 10 runs per mode
+- **Phones and tablets:** plays in the browser in landscape with a touch D-pad and four buttons, sized and laid out
+  your way in the options
 - **Full controller support:** analog steering, rumble, menu navigation, remapping and auto-switching button prompts
 - **Options** for audio, key bindings, field of view, resolution, a CRT filter and more
 
@@ -71,16 +73,16 @@ bends, launch off kickers and quarterpipes, flip and grab in the air, then tap *
 
 ## Controls
 
-| Action                 | Keyboard                                   | Controller                  |
-| ---------------------- | ------------------------------------------ | --------------------------- |
-| Carve                  | <kbd>←</kbd> <kbd>→</kbd>                  | Left stick / D-pad          |
-| Tuck for speed / brake | <kbd>↑</kbd> / <kbd>↓</kbd>                | Left stick / D-pad          |
-| Jump (hold & release)  | <kbd>Space</kbd>                           | Cross / A                   |
-| Perfect landing        | Tap <kbd>Space</kbd> just before touchdown | Cross / A                   |
-| Flip trick             | Arrows, then <kbd>A</kbd> or <kbd>L</kbd>  | Direction, then Square / X  |
-| Grab trick             | Arrows, then <kbd>D</kbd> or <kbd>K</kbd>  | Direction, then Circle / B  |
-| Body spin & flip       | <kbd>S</kbd> or <kbd>J</kbd> + arrow       | L2 / R2 + direction         |
-| Pause · Restart · Mute | <kbd>P</kbd> · <kbd>R</kbd> · <kbd>M</kbd> | Options · Create · Touchpad |
+| Action                 | Keyboard                                   | Controller                  | Touch                        |
+| ---------------------- | ------------------------------------------ | --------------------------- | ---------------------------- |
+| Carve                  | <kbd>←</kbd> <kbd>→</kbd>                  | Left stick / D-pad          | D-pad                        |
+| Tuck for speed / brake | <kbd>↑</kbd> / <kbd>↓</kbd>                | Left stick / D-pad          | D-pad                        |
+| Jump (hold & release)  | <kbd>Space</kbd>                           | Cross / A                   | JUMP                         |
+| Perfect landing        | Tap <kbd>Space</kbd> just before touchdown | Cross / A                   | Tap JUMP                     |
+| Flip trick             | Arrows, then <kbd>A</kbd> or <kbd>L</kbd>  | Direction, then Square / X  | D-pad, then FLIP             |
+| Grab trick             | Arrows, then <kbd>D</kbd> or <kbd>K</kbd>  | Direction, then Circle / B  | D-pad, then GRAB             |
+| Body spin & flip       | <kbd>S</kbd> or <kbd>J</kbd> + arrow       | L2 / R2 + direction         | Hold SPIN + D-pad            |
+| Pause · Restart · Mute | <kbd>P</kbd> · <kbd>R</kbd> · <kbd>M</kbd> | Options · Create · Touchpad | ❚❚ at the top, then the menu |
 
 Stop tricking for 2 seconds to bank your combo; land wrong and it's gone. The speed you are doing when it banks
 multiplies it: x1.0 up to 100 km/h, +0.1 for every 40 km/h above that, x1.5 from 300 km/h (shown over the km/h).

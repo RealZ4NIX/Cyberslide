@@ -29,6 +29,7 @@ src/
   game.ts             renderer, camera, input, HUD, menus, modes, settings
   audio.ts            generated drum & bass soundtrack and sound effects (WebAudio)
   gamepad.ts          controller reading: dead-zone, edge detection, glyph names, rumble
+  touch.ts            touch controls for phones and tablets: 8-way D-pad, the JUMP / FLIP / GRAB / SPIN diamond, pause
   scores.ts           local scoreboard with a swappable backend
   secretCode.ts       watches typed letters or controller buttons for a cheat-code sequence
   rival.ts            the other rider in a 1v1 link: their model posed from received frames, glow, name tag
@@ -74,6 +75,7 @@ textures when they load; import it first in a test that needs it.
 - `tricks.test.ts`: every input is unique, point scaling, input labels
 - `scores.test.ts`: ranking, ties, top 10, name cleaning, corrupt or blocked storage, swappable backend
 - `gamepad.test.ts`: pad detection, dead-zone, press/release edges, stick hysteresis, rumble
+- `touch.test.ts`: the D-pad's 8 directions and dead zone, and which diamond button a finger is on
 - `audio.test.ts`: safe before the context exists, mixer setup, every sound effect, music scheduling
 - `riders.test.ts`: stats, multipliers, every model builds, the secret rider unlock
 - `secretCode.test.ts`: code sequences, junk input, wrong order, timeout between inputs
@@ -131,3 +133,21 @@ shrinks into its chip (boosts bottom left, shield bottom right) or, for a time c
 
 The effects live in `player.ts` (`power()`, plus the hooks in `addCombo`, `crash`, `ride`, `air` and `predict`), the
 clock, HUD rack and screen effects in `game.ts`.
+
+## Touch screens
+
+A phone or tablet (a finger is the main pointer) starts on touch controls; the first touch, key press or controller
+button after that decides which controls show and what the prompts say (`dev` in `game.ts`: `kb`, `pad` or `touch`).
+`touch.ts` builds the controls and reports their state; `game.ts` merges it with the keyboard and the controller
+(`einp`), so the player code doesn't know the difference. The D-pad works like the keyboard arrows: carving on the
+snow, trick directions in the air, a diagonal is two arms at once. A thumb can slide across the diamond, so JUMP rolls
+straight into FLIP or GRAB.
+
+- **Landscape only.** A portrait touch screen shows a rotate screen and pauses a run. Android goes fullscreen and
+  locks landscape when a run starts; iPhones can't, so the browser bars stay.
+- **HUD.** The bottom corners belong to the thumbs: on touch the speed sits over the special bar in the middle and the
+  power chips move up above the controls (`body.touch` rules at the end of `styles.css`).
+- **Menus** are tapped; there is no key bar at the bottom. Names are typed on a letter pad, and the 1v1 code goes out
+  through the phone's share sheet when there is one.
+- **Options.** Button size, opacity and a mirrored layout replace the key bindings. Phones start on the CRUNCHY
+  resolution until the player picks one.

@@ -55,6 +55,7 @@
     <div id="gravfx"></div>
     <div id="pkflash"></div>
     <div id="flash"></div>
+    <div id="pflash"></div>
     <div id="rflash"></div>
   </div>
   <div id="crt" hidden></div>
@@ -66,8 +67,8 @@
       <div class="crumb">Cyberslide.sys <b>// main menu</b></div>
       <div><div class="sub">CYBERPUNK SNOWBOARD</div><div class="title">CYBER<br>SLIDE</div></div>
       <div class="stack">
-        <button class="btn" id="btnTimed" type="button">2 MIN RUN<small>PRESS 1 &middot; BEST <span id="bestTimed">0</span></small></button>
-        <button class="btn alt" id="btnEndless" type="button">ENDLESS<small>PRESS 2 &middot; BEST <span id="bestEndless">0</span></small></button>
+        <button class="btn" id="btnTimed" type="button">2 MIN RUN<small><span data-kbonly>PRESS 1 &middot; </span>BEST <span id="bestTimed">0</span></small></button>
+        <button class="btn alt" id="btnEndless" type="button">ENDLESS<small><span data-kbonly>PRESS 2 &middot; </span>BEST <span id="bestEndless">0</span></small></button>
         <button class="btn tut" id="btnTutorial" type="button">TUTORIAL<small id="tutSub">LEARN BY DOING</small></button>
         <button class="btn vs" id="btnLink" type="button">1V1 LINK<small>RACE A FRIEND ONLINE</small></button>
         <button class="btn ghost" id="btnBoard" type="button">SCOREBOARD<small>TOP 10 RUNS</small></button>
@@ -85,10 +86,10 @@
         <div>Tap <kbd data-k="space">Space</kbd> just before touchdown, when the ring goes gold: a <b>perfect landing</b> that fixes any rotation.</div>
         <div><b>Follow the bends</b>, the walls slow you down. Mint slopes are made for landing big jumps.</div>
         <div>Grab <b>power-ups</b>: <b style="color:#ff3b6b">overclock</b>, <b style="color:#ffd23f">x2 score</b>, <b style="color:#3bf0ff">combo shield</b>, <b style="color:#b07cff">low-grav</b>, <b style="color:#3dff8a">+time</b>. Sky ones over big launches are stronger.</div>
-        <div><kbd data-padk="pause" data-kbt="Esc">Esc</kbd> <b>Pause</b> &nbsp;<kbd data-k="restart">R</kbd> <b>Restart</b> &nbsp;<kbd data-k="mute">M</kbd> <b>Mute</b></div>
+        <div data-notouch><kbd data-padk="pause" data-kbt="Esc">Esc</kbd> <b>Pause</b> &nbsp;<kbd data-k="restart">R</kbd> <b>Restart</b> &nbsp;<kbd data-k="mute">M</kbd> <b>Mute</b></div>
+        <div data-touchonly hidden>Tap <kbd>&#10074;&#10074;</kbd> at the top to <b>pause</b>. Button size, opacity and a left-handed layout are in OPTIONS.</div>
       </div>
       <div class="hint">Stop tricking for 2 s to bank your combo. Higher jumps and bigger combos give a bigger boost. Chain tricks to fill the special meter.</div>
-      <div class="hint" id="phone-note">This game needs a keyboard. Open it on a computer to play.</div>
     </div>
     <div id="padBadge" role="note" aria-label="Controller supported: connect one and press any button">
       <i class="pb-c tl"></i><i class="pb-c br"></i>
@@ -109,7 +110,7 @@
       <div class="crumb" id="pzCrumb">Run suspended <b>// paused</b></div>
       <div class="title sm" id="pzTitle">PAUSED</div>
       <div class="stack">
-        <button class="btn" id="btnResume" type="button">RESUME<small>ESC</small></button>
+        <button class="btn" id="btnResume" type="button">RESUME<small class="kh">ESC</small></button>
         <button class="btn alt" id="btnEnd" type="button">END RUN<small>SEE YOUR RESULTS</small></button>
         <button class="btn ghost" id="btnRestart" type="button">RESTART</button>
         <button class="btn ghost" id="btnMenu" type="button">MAIN MENU</button>
@@ -142,7 +143,7 @@
       <div class="hint" id="confText" style="font-size:16px"></div>
       <div class="stack">
         <button class="btn alt" id="btnConfYes" type="button">RESTART</button>
-        <button class="btn ghost" id="btnConfNo" type="button">CANCEL<small>ESC</small></button>
+        <button class="btn ghost" id="btnConfNo" type="button">CANCEL<small class="kh">ESC</small></button>
       </div>
     </div>
   </div>
@@ -161,7 +162,7 @@
           <div class="tr-grid brk" id="trSpecA"></div><div class="tr-grid brk" id="trSpecD"></div>
         </div>
       </div>
-      <div class="stack"><button class="btn" id="btnTricksBack" type="button">BACK<small id="trBackKey">ESC</small></button></div>
+      <div class="stack"><button class="btn" id="btnTricksBack" type="button">BACK<small class="kh" id="trBackKey">ESC</small></button></div>
     </div>
   </div>
 
@@ -171,7 +172,7 @@
       <div class="title sm">OPTIONS</div>
       <div id="optBody"></div>
       <div class="hint" id="optMsg" aria-live="polite"></div>
-      <div class="stack"><button class="btn" id="btnOptBack" type="button">BACK<small>ESC</small></button></div>
+      <div class="stack"><button class="btn" id="btnOptBack" type="button">BACK<small class="kh">ESC</small></button></div>
     </div>
   </div>
 
@@ -215,9 +216,10 @@
       <div id="enScoreBox"><span class="big-score" id="enScore">0</span></div>
       <div class="hint" id="enHint">Type your name: up to 8 letters or digits, fewer is fine</div>
       <div class="inits" id="enSlots"></div>
+      <div class="tkeys" id="enKeys" data-touchonly hidden></div>
       <div class="stack">
-        <button class="btn" id="btnEnSave" type="button">SAVE<small>SPACE</small></button>
-        <button class="btn ghost" id="btnEnSkip" type="button">SKIP<small>ESC</small></button>
+        <button class="btn" id="btnEnSave" type="button">SAVE<small class="kh">SPACE</small></button>
+        <button class="btn ghost" id="btnEnSkip" type="button">SKIP<small class="kh">ESC</small></button>
       </div>
     </div>
   </div>
@@ -229,7 +231,7 @@
       <div class="seg" id="bdTabs"><button type="button" data-m="timed" class="on">2 MIN RUN</button><button type="button" data-m="endless">ENDLESS</button></div>
       <div class="bd brk" id="bdList"></div>
       <div class="hint" id="bdNote"></div>
-      <div class="stack"><button class="btn" id="btnBdBack" type="button">BACK<small>ESC</small></button></div>
+      <div class="stack"><button class="btn" id="btnBdBack" type="button">BACK<small class="kh">ESC</small></button></div>
     </div>
   </div>
 
@@ -265,7 +267,7 @@
       <div class="hint lb-ping" id="lbPing"></div>
       <div class="stack">
         <button class="btn" id="btnLbReady" type="button">READY<small>LOCKS YOUR RIDER</small></button>
-        <button class="btn ghost" id="btnLbLeave" type="button">LEAVE LINK<small>ESC</small></button>
+        <button class="btn ghost" id="btnLbLeave" type="button">LEAVE LINK<small class="kh">ESC</small></button>
       </div>
     </div>
   </div>
@@ -277,7 +279,7 @@
       <div class="hint" id="leaveText" style="font-size:16px">The link to your rival closes and you both go back to the main menu. To race again you swap new codes.</div>
       <div class="stack">
         <button class="btn alt" id="btnLeaveYes" type="button">LEAVE LINK</button>
-        <button class="btn ghost" id="btnLeaveNo" type="button">STAY<small>ESC</small></button>
+        <button class="btn ghost" id="btnLeaveNo" type="button">STAY<small class="kh">ESC</small></button>
       </div>
     </div>
   </div>
@@ -295,6 +297,14 @@
   </div>
 
   <div id="navbar" hidden></div>
+
+  <div id="rotate" role="alert">
+    <div class="rt-box">
+      <svg class="rt-phone" viewBox="0 0 120 120" aria-hidden="true"><rect class="rt-body" x="38" y="14" width="44" height="92" rx="8"/><path class="rt-arrow" d="M18 64A44 44 0 0 1 56 20M50 12 57 20 48 27"/></svg>
+      <div class="title sm">ROTATE</div>
+      <div class="hint">Cyberslide plays in landscape. Turn your device sideways.</div>
+    </div>
+  </div>
 
   <div id="nogl" hidden><div><div class="title" style="font-size:40px">NO WEBGL</div><p class="hint">This browser could not start 3D graphics. Try a recent Chrome, Firefox or Safari with hardware acceleration on.</p></div></div>
 </div>

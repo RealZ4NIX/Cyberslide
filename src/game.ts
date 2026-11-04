@@ -11,6 +11,7 @@ import { createSession } from './net/session';
 import { initialStep, lobbyStep } from './net/linkSteps';
 import { capture } from './net/pose';
 import { RivalRider } from './rival';
+import { createTouchControls, TOUCH_LABEL } from './touch';
 
 export function boot(): void {
   const $ = (id) => document.getElementById(id);
@@ -23,7 +24,9 @@ export function boot(): void {
     left: ['ArrowLeft', null], right: ['ArrowRight', null], up: ['ArrowUp', null], down: ['ArrowDown', null], space: ['Space', null],
     trick: ['KeyS', 'KeyJ'], grab: ['KeyD', 'KeyK'], flip: ['KeyA', 'KeyL'], restart: ['KeyR', null], mute: ['KeyM', null], pause: ['KeyP', null]
   };
-  const DEF = { music: 100, sfx: 100, mute: false, chips: true, res: 300, fx: 1, fov: 62, crt: false, fps: false, padDead: 15, rumble: true };
+  const DEF = { music: 100, sfx: 100, mute: false, chips: true, res: 300, fx: 1, fov: 62, crt: false, fps: false, padDead: 15, rumble: true, tSize: 1, tAlpha: 70, tSwap: false };
+  // phones and tablets: a finger is the main pointer. They start on touch controls, and on a lighter resolution until the player picks one
+  const COARSE = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   // controller buttons (standard mapping indexes: 0 cross, 1 circle, 2 square, 3 triangle, 4 L1, 5 R1, 6 L2, 7 R2, 8 create, 9 options, 10 L3, 11 R3, 17 touchpad)
   const DEF_PAD = { space: [0, null], trick: [6, 7], grab: [1, null], flip: [2, null], restart: [8, null], pause: [9, null], mute: [17, null] };
   const PAD_RESERVED = [12, 13, 14, 15, 16];   // D-pad (steering and menus) and the PS button
@@ -37,7 +40,10 @@ export function boot(): void {
     const s = Object.assign({}, DEF);
     for (const k in DEF) if (typeof o[k] === typeof DEF[k]) s[k] = o[k];
     s.music = Math.max(0, Math.min(100, s.music)); s.sfx = Math.max(0, Math.min(100, s.sfx));
+    if (COARSE && typeof o.res !== 'number') s.res = 240;
     if (![240, 300, 450, 720].includes(s.res)) s.res = 300;
+    if (![0.8, 1, 1.2].includes(s.tSize)) s.tSize = 1;
+    s.tAlpha = Math.max(30, Math.min(100, Math.round(s.tAlpha / 5) * 5));
     if (![0, 0.5, 1].includes(s.fx)) s.fx = 1;
     s.fov = Math.max(50, Math.min(90, s.fov));
     s.padDead = Math.max(5, Math.min(40, Math.round(s.padDead)));
@@ -76,8 +82,10 @@ export function boot(): void {
     paintTrickbook();
     document.querySelectorAll('[data-k]').forEach((e) => { e.textContent = actName(e.dataset.k); });
     document.querySelectorAll('#tricks kbd[data-k]').forEach((e) => { e.className = ''; if (dev === 'pad') padGlyph(e, actName(e.dataset.k), padBtn(e.dataset.k)); });   // the trickbook draws real controller buttons
-    document.querySelectorAll('[data-padk]').forEach((e) => { e.textContent = dev === 'pad' ? actName(e.dataset.padk) : e.dataset.kbt; });   // keys that read differently on a pad
-    document.querySelectorAll('[data-kbonly]').forEach((e) => { e.hidden = dev === 'pad'; });
+    document.querySelectorAll('[data-padk]').forEach((e) => { e.textContent = dev !== 'kb' ? actName(e.dataset.padk) : e.dataset.kbt; });   // keys that read differently on a pad or touch screen
+    document.querySelectorAll('[data-kbonly]').forEach((e) => { e.hidden = dev !== 'kb'; });
+    document.querySelectorAll('[data-notouch]').forEach((e) => { e.hidden = dev === 'touch'; });
+    document.querySelectorAll('[data-touchonly]').forEach((e) => { e.hidden = dev !== 'touch'; });
   }
   ND.audio.setMuted(S.mute); ND.audio.setVolumes(S.music / 100, S.sfx / 100);
 
@@ -158,7 +166,7 @@ export function boot(): void {
   const inp = { left: false, right: false, up: false, down: false, space: false, trick: false, grab: false, flip: false };
   let confirmFrom = null, swallowSpace = false;   // restart confirmation: remembers where to go back to on Esc
   addEventListener('keydown', (e) => {
-    if (e.isTrusted !== false) setDevice('kb');
+    if (e.isTrusted !== false && !(dev === 'touch' && e.target && /^(TEXTAREA|INPUT)$/.test(e.target.tagName))) setDevice('kb');   // the on-screen keyboard of a phone typing a link code is still touch
     if (e.key && e.key.length === 1 && e.code !== 'Space' && !e.code.startsWith('Numpad')) S.labels[e.code] = e.key.toUpperCase();
     if (listen) { e.preventDefault(); if (!e.repeat) handleListen(e); return; }
     if (e.target && e.target.tagName === 'TEXTAREA') { if (e.code === 'Escape') { e.preventDefault(); e.target.blur(); } return; }   // link codes: typing and Ctrl+V stay in the box
@@ -189,15 +197,42 @@ export function boot(): void {
   addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) inp[k] = false; if (e.code === 'Space') { swallowSpace = false; if (navName) e.preventDefault(); } });
   addEventListener('blur', () => { for (const k in inp) inp[k] = false; if (state === 'play' && !mpMenu) pause(); });
 
+  /* ---------- touch screen (touch.ts): a finger switches the game to touch controls, a mouse click switches back ---------- */
+  const touch = createTouchControls($('game'), () => { if (state === 'play' && !navName) pause(); });
+  addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch' || e.pointerType === 'pen') setDevice('touch');
+    else if (e.pointerType === 'mouse' && dev === 'touch') setDevice('kb');
+  }, true);
+  /* landscape only on touch: a portrait phone gets a "rotate" screen, and a run in progress pauses */
+  function checkOrient() {
+    const port = dev === 'touch' && innerHeight > innerWidth * 1.05;
+    document.body.classList.toggle('portrait', port);
+    if (port && state === 'play' && !navName) pause();
+  }
+  addEventListener('resize', checkOrient);
+  /* phones that allow it (Android) go fullscreen in landscape when a run starts; iPhones ignore this and keep the browser bars */
+  function goFullscreen() {
+    if (dev !== 'touch') return;
+    const d = document.documentElement;
+    try {
+      if (!document.fullscreenElement && d.requestFullscreen) d.requestFullscreen({ navigationUI: 'hide' }).then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* ignore */ } }, () => {});
+    } catch (e) { /* ignore */ }
+  }
+  /* a short buzz where the phone can (Android); iPhones have no web vibration */
+  const buzz = (ms) => { if (S.rumble && dev === 'touch' && navigator.vibrate) try { navigator.vibrate(ms); } catch (e) { /* ignore */ } };
+
   /* ---------- controller: gamepad.js reads the device, this decides what the buttons do ---------- */
   const PADK = ND.pad;
-  let dev = 'kb', padSwallow = false, padConn = false, padNavWas = false;   // dev: which device the prompts speak about
+  let dev = COARSE ? 'touch' : 'kb', padSwallow = false, padConn = false, padNavWas = false;   // dev: which device the prompts speak about
+  document.body.classList.toggle('touch', dev === 'touch');
   const padIn = { left: false, right: false, up: false, down: false, space: false, trick: false, grab: false, flip: false, ax: 0 };
   const einp = { left: false, right: false, up: false, down: false, space: false, trick: false, grab: false, flip: false, ax: 0 };   // what the game sees: keyboard and controller together
   const padHeld = (a) => S.pad[a].some((i) => i != null && PADK.st.btn[i]);
   const padHit = (a) => S.pad[a].some((i) => i != null && PADK.st.hit[i]);
   const ARROWS = { left: '←', right: '→', up: '↑', down: '↓' };
+  const TOUCH_NAME = { space: TOUCH_LABEL.space, flip: TOUCH_LABEL.flip, grab: TOUCH_LABEL.grab, trick: TOUCH_LABEL.trick, pause: '\u275a\u275a' };
   function actName(a) {
+    if (dev === 'touch' && (ARROWS[a] || TOUCH_NAME[a])) return ARROWS[a] || TOUCH_NAME[a];
     if (dev === 'pad') {
       if (ARROWS[a]) return ARROWS[a];
       const b = S.pad[a] && S.pad[a].find((i) => i != null);
@@ -224,7 +259,12 @@ export function boot(): void {
     e.innerHTML = '<svg viewBox="0 0 12 12" aria-hidden="true"><g class="off">' + Object.keys(ARMS).filter((k) => !dir.includes(k)).map((k) => ARMS[k]).join('') + '<rect x="4" y="4" width="4" height="4"/></g><g class="on">' + dir.split('').map((k) => ARMS[k]).join('') + '</g></svg>';
     return e;
   }
-  function setDevice(d) { if (dev === d) return; dev = d; refreshKeyLabels(); paintNavbar(); }
+  function setDevice(d) {
+    if (dev === d) return;
+    dev = d; document.body.classList.toggle('touch', d === 'touch');
+    refreshKeyLabels(); paintNavbar(); if (optOpen) buildOptions();
+    if (d !== 'touch') checkOrient();   // a keyboard or a controller plays in any orientation
+  }
   let padNoteT = 0;
   function padNote(text) {
     const n = $('padNote'); n.textContent = text; n.classList.add('show');
@@ -326,7 +366,8 @@ export function boot(): void {
       }
     }
     padNavWas = !!navName;
-    for (const k in einp) einp[k] = k === 'ax' ? padIn.ax : (inp[k] || padIn[k]);
+    const tIn = touch.input, tOn = dev === 'touch' && !navName && state === 'play';
+    for (const k in einp) einp[k] = k === 'ax' ? padIn.ax : (inp[k] || padIn[k] || (tOn && tIn[k]));
   }
   function padBind(b) {
     const { a, i } = listen;
@@ -534,8 +575,11 @@ export function boot(): void {
     else if (n === 'bank') { toast('COMBO BANKED +' + fmt(d.total) + (d.speed > 1 ? '  SPEED x' + d.speed.toFixed(1) : '') + (d.dist > 1 ? '  DIST x' + d.dist.toFixed(1) : ''), 'bank'); big('+' + fmt(d.total), 'bank'); ND.audio.sfx('bank'); }
     else if (n === 'crash' && d.shielded) { toast((d.reason || 'Wipeout').toUpperCase() + '  COMBO SHIELD  combo saved', 'shield'); big('SAVED', 'shield'); shieldFlash(); ND.audio.sfx('crash'); ND.audio.sfx('shield'); ND.audio.grind(false, 0); }
     else if (n === 'power') powerToast(d);
-    else if (n === 'crash') { toast((d.reason || 'Wipeout').toUpperCase() + (d.lost ? '  combo lost -' + fmt(d.lost) : ''), 'bad'); if (d.lost > 0) showFail(d.reason, d.lost); else big(d.reason === 'Bad landing' ? 'BAD LANDING' : 'WIPEOUT', 'bad'); ND.audio.sfx('crash'); ND.audio.grind(false, 0); }
-    else if (n === 'perfect') { big('PERFECT!', 'perfect'); burst(d.x, d.y, d.s); ND.audio.sfx('perfect'); }
+    else if (n === 'crash') { buzz(70); toast((d.reason || 'Wipeout').toUpperCase() + (d.lost ? '  combo lost -' + fmt(d.lost) : ''), 'bad'); if (d.lost > 0) showFail(d.reason, d.lost); else big(d.reason === 'Bad landing' ? 'BAD LANDING' : 'WIPEOUT', 'bad'); ND.audio.sfx('crash'); ND.audio.grind(false, 0); }
+    else if (n === 'perfect') {
+      big('PERFECT!', 'perfect'); burst(d.x, d.y, d.s); ND.audio.sfx('perfect');
+      if (dev === 'touch') { const pf = $('pflash'); pf.className = ''; void pf.offsetWidth; pf.className = 'on'; buzz(28); }   // no button to feel on glass: a thin gold edge and a tick of vibration
+    }
     else if (n === 'arm') ND.audio.sfx('arm');
     else if (n === 'trickStart') ND.audio.sfx('flip');
     else if (n === 'special') { toast('SPECIAL  ' + d.name.toUpperCase(), 'special', d.input); ND.audio.sfx('special'); }
@@ -750,8 +794,8 @@ export function boot(): void {
   }
   function paintNavbar() {
     const nb = $('navbar');
-    nb.hidden = !navName; nb.textContent = '';
-    if (!navName) return;
+    nb.hidden = !navName || dev === 'touch'; nb.textContent = '';   // on a touch screen everything is tapped, so there are no keys to list
+    if (nb.hidden) return;
     const tok = (k) => k === '@restart' ? actName('restart') : k === '@pause' ? actName('pause') : /^@b\d+$/.test(k) ? PADK.name(+k.slice(2)) : k;
     const nbKey = navName === 'result' && mp ? 'mpresult' : navName;   // a 1v1 result has no restart
     ((dev === 'pad' ? NAVBAR_PAD : NAVBAR)[nbKey] || []).forEach(([k, t]) => { const sp = document.createElement('span'), kb = document.createElement('kbd'); kb.textContent = tok(k); sp.appendChild(kb); sp.appendChild(document.createTextNode(t)); nb.appendChild(sp); });
@@ -854,6 +898,7 @@ export function boot(): void {
   function startRun(m, ci, net) {
     const tut = m === 'tutorial';
     if (!tut) { leaveTutorial(); ND.tutorial.markPlayed(); }
+    goFullscreen();
     mode = m; player.setRider(tut ? 'nova' : ND.riderId); ND.audio.init(); ND.audio.hush(); ND.audio.startMusic(); ND.audio.sfx('start');
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     ND.world.reseed(tut ? 0 : net ? net.seed : undefined);   // every run (restarts too) gets a brand new hill; the tutorial keeps the fixed one; a 1v1 race uses the host's
@@ -885,7 +930,7 @@ export function boot(): void {
   function confirmRestart() { confirmFrom = null; swallowSpace = true; inp.space = false; padSwallow = true; if (mode === 'tutorial') startRun('tutorial', ND.tutorial.chapter); else startRun(mode); }
   $('btnConfYes').onclick = confirmRestart;
   $('btnConfNo').onclick = cancelConfirm;
-  function setBtn(id, text, sub) { const b = $(id); b.textContent = text; if (sub) { const sm = document.createElement('small'); sm.textContent = sub; b.appendChild(sm); } }
+  function setBtn(id, text, sub) { const b = $(id); b.textContent = text; if (sub) { const sm = document.createElement('small'); sm.textContent = sub; if (/^(ESC|SPACE)$/.test(sub)) sm.className = 'kh'; b.appendChild(sm); } }   // .kh: a key hint, hidden on touch
   function pause() {
     if (mp) {
       if (mpMenu) return;
@@ -1015,8 +1060,16 @@ export function boot(): void {
     s.querySelector('b').onclick = () => { enFresh = false; enCaret = Math.min(i, enName.length); paintEntry(); navSfx('nav'); };
     enSlots.appendChild(s);
   }
+  /* on a touch screen there is no keyboard: a letter pad under the slots types the name */
+  const enKeys = $('enKeys');
+  for (const ch of NAME_SET + '\u232b') {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'tk' + (ch === '\u232b' ? ' del' : ''); b.textContent = ch;
+    b.setAttribute('aria-label', ch === '\u232b' ? 'Delete' : ch);
+    b.onclick = () => { if (performance.now() < enLockUntil) return; if (ch === '\u232b') enBack(); else enType(ch); paintEntry(); navSfx('nav'); };
+    enKeys.appendChild(b);
+  }
   function openEntry(run, rank) {
-    $('enTitle').textContent = 'HIGH SCORE'; $('enScoreBox').hidden = false; $('enHint').textContent = 'Type your name: up to 8 letters or digits, fewer is fine';
+    $('enTitle').textContent = 'HIGH SCORE'; $('enScoreBox').hidden = false; $('enHint').textContent = (dev === 'touch' ? 'Tap in your name' : 'Type your name') + ': up to 8 letters or digits, fewer is fine';
     enPend = run;
     enName = loadName().split('').filter(Boolean); enCaret = enName.length; enFresh = enName.length > 0;   // empty the first time, afterwards the remembered name
     $('enSub').textContent = (run.mode === 'timed' ? '2 MIN RUN' : 'ENDLESS') + ' // RANK #' + rank;
@@ -1145,7 +1198,7 @@ export function boot(): void {
       lkEvent({ t: 'hosted', invite: h.invite });
     }).catch((e) => lkEvent({ t: 'error', reason: (e && e.reason) || 'failed' }));
   }
-  function lkJoin() { lk = { mode: 'join', step: initialStep('join') }; paintLink(); setTimeout(() => $('lkIn').focus(), 0); }
+  function lkJoin() { lk = { mode: 'join', step: initialStep('join') }; paintLink(); if (dev !== 'touch') setTimeout(() => $('lkIn').focus(), 0); }   // a phone would pop its keyboard over the PASTE button
   function lkSubmit() {
     if (!lk || !lk.mode) return;
     const code = $('lkIn').value.replace(/\s+/g, '');
@@ -1196,7 +1249,8 @@ export function boot(): void {
     if (!takes) $('lkIn').value = '';
     lkErr(st && st.error);
     vis('btnLkHost', k === 'choose'); vis('btnLkJoin', k === 'choose');
-    vis('btnLkCopy', !!out); vis('btnLkPaste', takes); vis('btnLkGo', takes); vis('btnLkRetry', k === 'failed');
+    vis('btnLkCopy', !!out); vis('btnLkPaste', takes);
+    setBtn('btnLkCopy', canShare() ? 'SEND CODE' : 'COPY CODE', canShare() ? 'TO ANY CHAT APP' : 'SEND IT IN ANY CHAT'); vis('btnLkGo', takes); vis('btnLkRetry', k === 'failed');
     setBtn('btnLkGo', host ? 'CONNECT' : 'JOIN', 'AFTER PASTING IN THE BOX');
     setBtn('btnLkBack', k === 'choose' || k === 'failed' ? 'BACK' : 'CANCEL', 'ESC');
     if (k === 'reply') { $('lkText').textContent = TEXT.reply; }
@@ -1208,13 +1262,17 @@ export function boot(): void {
   $('btnLkGo').onclick = lkSubmit;
   $('btnLkRetry').onclick = () => { const m = lk && lk.mode; mpLeave(); openLink(); if (m === 'host') lkHost(); else if (m === 'join') lkJoin(); };
   $('btnLkBack').onclick = linkBack;
+  /* on a phone the code goes out through the share sheet (WhatsApp, Discord, ...), which also has Copy */
+  const canShare = () => dev === 'touch' && typeof navigator.share === 'function';
   $('btnLkCopy').onclick = () => {
     const t = $('lkOut'), done = () => { padNote('CODE COPIED'); navSfx('sel'); };
-    const fallback = () => { t.focus(); t.select(); try { if (document.execCommand('copy')) { done(); return; } } catch (e) { /* ignore */ } lkErr('SELECT THE CODE AND PRESS CTRL+C'); };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(done, fallback); else fallback();
+    const fallback = () => { t.focus(); t.select(); try { if (document.execCommand('copy')) { done(); return; } } catch (e) { /* ignore */ } lkErr(dev === 'touch' ? 'TAP AND HOLD THE CODE TO COPY IT' : 'SELECT THE CODE AND PRESS CTRL+C'); };
+    const copy = () => { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(done, fallback); else fallback(); };
+    if (canShare()) navigator.share({ text: t.value }).then(() => navSfx('sel'), (e) => { if (!e || e.name !== 'AbortError') copy(); });
+    else copy();
   };
   $('btnLkPaste').onclick = () => {
-    const fail = () => { $('lkIn').focus(); lkErr('CLICK THE BOX AND PRESS CTRL+V'); };
+    const fail = () => { $('lkIn').focus(); lkErr(dev === 'touch' ? 'TAP AND HOLD THE BOX, THEN PASTE' : 'CLICK THE BOX AND PRESS CTRL+V'); };
     if (!navigator.clipboard || !navigator.clipboard.readText) { fail(); return; }
     navigator.clipboard.readText().then((txt) => { if (!txt || !txt.trim()) { fail(); return; } $('lkIn').value = txt.trim(); lkSubmit(); }, fail);
   };
@@ -1240,7 +1298,7 @@ export function boot(): void {
     if (key === mpPaintKey) return; mpPaintKey = key;
     paintVs($('lbMe'), s.me.name, s.me.rider, s.ready ? 'READY' : 'PICKING', s.ready);
     paintVs($('lbRival'), ri ? ri.name : 'CONNECTING', ri ? ri.rider : '', !ri ? '' : s.rival.ready ? 'READY' : 'PICKING', s.rival.ready);
-    $('lbText').textContent = s.ready && s.rival.ready ? 'DROPPING IN...' : s.ready ? 'Waiting for your rival to ready up.' : 'Pick your rider with ← →, then ready up. You drop as soon as you are both ready: 2 MIN RUN, same random hill for both.';
+    $('lbText').textContent = s.ready && s.rival.ready ? 'DROPPING IN...' : s.ready ? 'Waiting for your rival to ready up.' : 'Pick your rider with ' + (dev === 'touch' ? 'the arrows on the rider card' : '← →') + ', then ready up. You drop as soon as you are both ready: 2 MIN RUN, same random hill for both.';
     $('lbPing').textContent = s.rtt > 0 ? 'PING ' + Math.round(s.rtt) + ' MS' : '';
     setBtn('btnLbReady', s.ready ? 'NOT READY' : 'READY', s.ready ? 'CHANGE YOUR RIDER' : 'LOCKS YOUR RIDER');
   }
@@ -1382,12 +1440,13 @@ export function boot(): void {
   try { localStorage.removeItem('cyberslide-input'); } catch (e) { /* ignore */ }
   const TB_HOW = {
     kb: 'In the air, tap the arrows in order, then press <kbd data-k="flip">A</kbd> (flip) or <kbd data-k="grab">D</kbd> (grab) within half a second. Holding an arrow works too. A diagonal is two arrows pressed together. Each trick counts once per jump. <kbd data-k="trick">S</kbd> + arrows still spins and flips your body.',
+    touch: 'In the air, slide your thumb over the D-pad in order, then tap <kbd data-k="flip">FLIP</kbd> or <kbd data-k="grab">GRAB</kbd> within half a second. Holding a direction works too. For a diagonal, put your thumb between two arrows. Each trick counts once per jump. Hold <kbd data-k="trick">SPIN</kbd> + a direction to spin and flip your body. Tip: you can slide your thumb from JUMP straight onto FLIP or GRAB.',
     pad: 'In the air, push the D-pad or left stick in order, then press <kbd data-k="flip">A</kbd> (flip) or <kbd data-k="grab">D</kbd> (grab) within half a second. Holding a direction works too. A diagonal is two directions pushed together. Each trick counts once per jump. <kbd data-k="trick">S</kbd> + directions still spins and flips your body.'
   };
   /* the trickbook: every trick and its input. Repainted whenever the prompts switch between keyboard and controller */
   function paintTrickbook() {
-    const pad = dev === 'pad';
-    $('trHow').innerHTML = TB_HOW[pad ? 'pad' : 'kb'];
+    const pad = dev === 'pad', tch = dev === 'touch';
+    $('trHow').innerHTML = TB_HOW[pad ? 'pad' : tch ? 'touch' : 'kb'];
     const back = $('trBackKey'); back.textContent = '';
     back.appendChild(pad ? padGlyph(document.createElement('kbd'), '', 1) : document.createTextNode('ESC'));
     const fill = (id, list) => {
@@ -1396,12 +1455,13 @@ export function boot(): void {
         const r = document.createElement('div'); r.className = 'tr-row' + (t.sp ? ' sp' : '');
         const n = document.createElement('span'); n.className = 'tr-name'; n.textContent = t.name;
         const k = document.createElement('span'); k.className = 'tr-keys';
-        if (!pad) k.textContent = ND.trickInput(t);
+        if (!pad && !tch) k.textContent = ND.trickInput(t);
         else {
           k.classList.add('pad');
           t.seq.forEach((d) => k.appendChild(dpadGlyph(d)));
           k.appendChild(document.createTextNode(t.seq.length ? '+' : ''));
-          k.appendChild(glyphFor(t.btn === 'A' ? 'flip' : 'grab'));
+          if (tch) { const b = document.createElement('kbd'); b.className = 'tg ' + (t.btn === 'A' ? 'flip' : 'grab'); b.textContent = actName(t.btn === 'A' ? 'flip' : 'grab'); k.appendChild(b); }
+          else k.appendChild(glyphFor(t.btn === 'A' ? 'flip' : 'grab'));
           if (!t.seq.length) k.appendChild(document.createTextNode('alone'));
         }
         r.appendChild(n); r.appendChild(k); box.appendChild(r);
@@ -1432,6 +1492,7 @@ export function boot(): void {
     ND.audio.setMuted(S.mute); ND.audio.setVolumes(S.music / 100, S.sfx / 100);
     $('crt').hidden = !S.crt; $('fps').hidden = !S.fps;
     if (lastRes !== S.res) { lastRes = S.res; resize(); }
+    touch.setLayout({ size: S.tSize, alpha: S.tAlpha / 100, swap: S.tSwap });
   }
   function say(t) { $('optMsg').textContent = t || ''; }
   function section(title) { const h = mk('div', 'opt-sec', title), g = mk('div', 'opt-grid brk'); $('optBody').appendChild(h); $('optBody').appendChild(g); return g; }
@@ -1464,9 +1525,16 @@ export function boot(): void {
     let g = section('AUDIO');
     slider(g, 'Music volume', 'music', 0, 100, 5, (v) => v + '%');
     slider(g, 'Effects volume', 'sfx', 0, 100, 5, (v) => v + '%', () => { ND.audio.init(); ND.audio.sfx('trick'); });
-    seg(g, 'Sound', () => S.mute, (v) => { S.mute = v; }, [[false, 'ON'], [true, 'MUTED']], 'Mute with ' + actName('mute') + ' any time');
+    seg(g, 'Sound', () => S.mute, (v) => { S.mute = v; }, [[false, 'ON'], [true, 'MUTED']], dev === 'touch' ? '' : 'Mute with ' + actName('mute') + ' any time');
     g = section('CONTROLS');
     bool(g, 'Show trick inputs in the combo feed', 'chips');
+    if (dev === 'touch') {
+      g = section('TOUCH CONTROLS');
+      seg(g, 'Button size', () => S.tSize, (v) => { S.tSize = v; }, [[0.8, 'SMALL'], [1, 'MEDIUM'], [1.2, 'LARGE']]);
+      slider(g, 'Button opacity', 'tAlpha', 30, 100, 5, (v) => v + '%');
+      seg(g, 'Layout', () => S.tSwap, (v) => { S.tSwap = v; }, [[false, 'D-PAD LEFT'], [true, 'D-PAD RIGHT']], 'D-pad right puts the buttons under your left thumb');
+      if (!PADK.connected) { bool(g, 'Vibration', 'rumble', 'ON', 'OFF', 'A short buzz on perfect landings and wipeouts, on phones that support it'); buildTail(); return; }   // no keyboard to bind; a controller plugged into a tablet still gets its section
+    } else {
     const hdr = orow(g, 'Key bindings', 'Click a key, then press the new one. Backspace clears it, Esc cancels.');
     const rb = mk('button', 'mini', 'RESET KEYS'); rb.type = 'button';
     rb.onclick = () => { for (const a in DEF_KEYS) S.keys[a] = DEF_KEYS[a].slice(); keysChanged(); say('Keys reset to default.'); };
@@ -1476,6 +1544,7 @@ export function boot(): void {
       if (a === 'pause') { const f = mk('button', 'kb fixed', 'ESC'); f.type = 'button'; f.tabIndex = -1; f.setAttribute('aria-label', 'Escape always pauses'); w.appendChild(f); }
       for (let i = 0; i < S.keys[a].length; i++) w.appendChild(slotBtn(a, i));
       r.appendChild(w);
+    }
     }
     g = section('CONTROLLER');
     orow(g, 'Controller', PADK.connected ? PADK.label + ' connected' : 'None found. Connect one and press any button.');
@@ -1490,8 +1559,11 @@ export function boot(): void {
       for (let i = 0; i < S.pad[a].length; i++) w.appendChild(padSlotBtn(a, i));
       r.appendChild(w);
     }
-    g = section('GRAPHICS');
-    seg(g, 'Resolution', () => S.res, (v) => { S.res = v; }, [[240, 'CRUNCHY'], [300, 'CLASSIC'], [450, 'SHARP'], [720, 'CRISP']], 'Lower is more PS2 and lighter on slow machines');
+    buildTail();
+  }
+  function buildTail() {
+    let g = section('GRAPHICS');
+    seg(g, 'Resolution', () => S.res, (v) => { S.res = v; }, [[240, 'CRUNCHY'], [300, 'CLASSIC'], [450, 'SHARP'], [720, 'CRISP']], 'Lower is more PS2 and lighter on slow machines' + (COARSE ? '. Phones start on CRUNCHY to stay cool' : ''));
     seg(g, 'Screen shake and speed zoom', () => S.fx, (v) => { S.fx = v; }, [[1, 'FULL'], [0.5, 'REDUCED'], [0, 'OFF']], 'Reduced or off is easier on motion sickness');
     slider(g, 'Field of view', 'fov', 50, 90, 1, (v) => v + '\u00b0');
     bool(g, 'CRT scanlines and vignette', 'crt');
@@ -1500,7 +1572,7 @@ export function boot(): void {
     const r = orow(g, 'Best scores', 'Clears your 2 min and endless bests'), db = mk('button', 'mini', 'RESET BEST SCORES'); db.type = 'button';
     let arm = 0;
     db.onclick = () => {
-      if (!arm) { db.textContent = 'CLICK AGAIN TO CONFIRM'; db.classList.add('warn'); arm = setTimeout(() => { arm = 0; db.textContent = 'RESET BEST SCORES'; db.classList.remove('warn'); }, 3000); return; }
+      if (!arm) { db.textContent = (dev === 'touch' ? 'TAP' : 'CLICK') + ' AGAIN TO CONFIRM'; db.classList.add('warn'); arm = setTimeout(() => { arm = 0; db.textContent = 'RESET BEST SCORES'; db.classList.remove('warn'); }, 3000); return; }
       clearTimeout(arm); arm = 0; db.textContent = 'RESET BEST SCORES'; db.classList.remove('warn');
       try { for (const k of ['timed', 'endless']) { localStorage.removeItem(bestKey(k)); localStorage.removeItem('neondrop-best-' + k); } } catch (e) { /* ignore */ }
       refreshBests(); say('Best scores cleared.');
@@ -1619,6 +1691,7 @@ export function boot(): void {
     if (S.fps) { fpsN++; fpsT += (now - fpsLast) / 1000; if (fpsT >= 0.5) { fpsEl.textContent = Math.round(fpsN / fpsT) + ' FPS'; fpsN = 0; fpsT = 0; } }
     fpsLast = now;
     padFrame(dt);
+    touch.setVisible(dev === 'touch' && !navName && (state === 'play' || state === 'countdown'));
     if (state === 'countdown') {
       const before = Math.ceil(cd); cd -= dt;
       player.pose(dt, NOINP);
@@ -1656,5 +1729,6 @@ export function boot(): void {
   }
   toMenu();
   snapCamera();
+  checkOrient();
   requestAnimationFrame(frame);
 }
