@@ -571,7 +571,7 @@ export function boot(): void {
   // chips with a draining bar for each running power: the timed boosts bottom left, the shield bottom right
   const chips = {};
   for (const k of ['x2', 'grav', 'shield']) {   // overclock is too short for a chip: its pop-up stays at the top instead
-    const c = document.createElement('div'); c.className = 'pu' + (k === 'x2' || k === 'shield' ? ' big' : ''); c.style.setProperty('--pc', PW[k].css);
+    const c = document.createElement('div'); c.className = 'pu big'; c.style.setProperty('--pc', PW[k].css);
     const img = document.createElement('img'); img.alt = ''; img.src = ND.pickups.iconURL ? ND.pickups.iconURL(k) : '';
     const b = document.createElement('b'); b.textContent = k === 'x2' ? '2X' : k === 'over' ? 'OVR' : k === 'grav' ? 'GRAV' : 'SHLD';
     const bar = document.createElement('i'), n = document.createElement('span');
@@ -845,7 +845,7 @@ export function boot(): void {
   function startRun(m, ci, net) {
     const tut = m === 'tutorial';
     if (!tut) { leaveTutorial(); ND.tutorial.markPlayed(); }
-    mode = m; player.setRider(tut ? 'nova' : ND.riderId); ND.audio.init(); ND.audio.startMusic(); ND.audio.sfx('start');
+    mode = m; player.setRider(tut ? 'nova' : ND.riderId); ND.audio.init(); ND.audio.hush(); ND.audio.startMusic(); ND.audio.sfx('start');
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     ND.world.reseed(tut ? 0 : net ? net.seed : undefined);   // every run (restarts too) gets a brand new hill; the tutorial keeps the fixed one; a 1v1 race uses the host's
     mpMenu = false; rival.hide(); $('hudRival').hidden = !net; runT = -(net ? net.cd : 3);
@@ -863,7 +863,7 @@ export function boot(): void {
     if (mp) return;   // the hill is shared in a 1v1 race: no restarts
     confirmFrom = state; state = 'confirm';
     for (const k in inp) inp[k] = false;
-    ND.audio.grind(false, 0); ND.audio.carve(0, false, 0);
+    ND.audio.hush();
     $('confText').textContent = mode === 'tutorial' ? 'Start this chapter again?' : confirmFrom === 'over' ? 'Start a new run?' : 'Your current run will be lost.';
     show('confirm');
   }
@@ -888,20 +888,20 @@ export function boot(): void {
     for (const id of ['btnEnd', 'btnRestart', 'btnMenu']) $(id).hidden = false;
     $('btnQuitLink').hidden = true; setBtn('btnResume', 'RESUME', 'ESC');
     $('pzCrumb').innerHTML = 'Run suspended <b>// paused</b>'; $('pzTitle').textContent = 'PAUSED';
-    state = 'pause'; ND.audio.grind(false, 0); ND.audio.carve(0, false, 0);
+    state = 'pause'; ND.audio.hush();
     if (mode === 'tutorial') { setBtn('btnEnd', 'SKIP CHAPTER', 'MOVE ON'); setBtn('btnRestart', 'RESTART CHAPTER'); setBtn('btnMenu', 'EXIT TUTORIAL'); }
     else { setBtn('btnEnd', 'END RUN', 'SEE YOUR RESULTS'); setBtn('btnRestart', 'RESTART'); setBtn('btnMenu', 'MAIN MENU'); }
     show('pause');
   }
   function resume() { if (mpMenu) { mpMenu = false; show(null); return; } state = 'play'; show(null); last = performance.now(); }
   function refreshBests() { $('bestTimed').textContent = fmt(getBest('timed')); $('bestEndless').textContent = fmt(getBest('endless')); }
-  function toMenu() { leaveTutorial(); if (mp || lk) mpLeave(); state = 'menu'; ND.audio.grind(false, 0); ND.audio.carve(0, false, 0); player.resetAll(); ND.world.clear(); ND.world.update(player.s); ND.pickups.clear(false); el.big.className = ''; show('menu'); refreshBests(); paintTutBtn();
+  function toMenu() { leaveTutorial(); if (mp || lk) mpLeave(); state = 'menu'; ND.audio.hush(); player.resetAll(); ND.world.clear(); ND.world.update(player.s); ND.pickups.clear(false); el.big.className = ''; show('menu'); refreshBests(); paintTutBtn();
     if (tutGlow()) { const i = navUnits().findIndex((u) => u.el.id === 'btnTutorial'); if (i >= 0) { navIdx = i; navPaint(false); } }   // first time: the tutorial is the highlighted button
   }
 
   /* a chapter was finished (or skipped): badges for what was learned, then on to the next one */
   function tutorialDone(res) {
-    state = 'tutdone'; ND.audio.grind(false, 0); ND.audio.carve(0, false, 0); el.big.className = '';
+    state = 'tutdone'; ND.audio.hush(); el.big.className = '';
     for (const k in inp) inp[k] = false;
     const last = res.last, nOk = res.badges.filter((b) => b.ok).length;
     if (last) ND.tutorial.finishedAll();
@@ -923,7 +923,7 @@ export function boot(): void {
   function finish() {
     if (mp) dropSubs();
     mpMenu = false;
-    state = 'over'; player.bank(); ND.audio.grind(false, 0); ND.audio.carve(0, false, 0); ND.audio.sfx('end');
+    state = 'over'; player.bank(); ND.audio.hush(); ND.audio.sfx('end');
     const best = getBest(mode), isBest = player.score > best;
     if (isBest) setBest(mode, player.score);
     const st = player.stats;
@@ -1211,7 +1211,7 @@ export function boot(): void {
 
   /* ---------- lobby: pick riders, both ready, drop ---------- */
   function openLobby() {
-    state = 'link'; mpMenu = false; rival.hide(); $('hudRival').hidden = true;
+    state = 'link'; ND.audio.hush(); mpMenu = false; rival.hide(); $('hudRival').hidden = true;
     player.resetAll(); ND.world.clear(); ND.world.update(player.s); ND.pickups.clear(false); el.big.className = '';
     if (lk) lk.step = { k: 'open' };
     mpPaintKey = ''; show('lobby');

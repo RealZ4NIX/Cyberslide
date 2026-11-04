@@ -3,12 +3,13 @@ import { audio, BPM, mtof, S16, type SfxName } from './audio';
 
 /* A stand-in WebAudio context: every node accepts any call, and we record what got created and started. */
 function fakeAudio() {
-  const log = { created: [] as string[], started: 0 };
+  const log = { created: [] as string[], started: 0, ramps: [] as number[] };
   const param = () => ({
     value: 0,
     setValueAtTime: vi.fn(),
     exponentialRampToValueAtTime: vi.fn(),
     setTargetAtTime: vi.fn(),
+    linearRampToValueAtTime: vi.fn((v: number) => log.ramps.push(v)),
     cancelScheduledValues: vi.fn(),
   });
   const node = (kind: string) => {
@@ -132,6 +133,13 @@ describe('with an audio context', () => {
       audio.sfx(n);
       expect(log.started, n).toBeGreaterThan(before);
     }
+  });
+  it('hush fades the carve, powerslide and grind sounds all the way to silence', () => {
+    audio.carve(40, true, 1.4); // full powerslide
+    audio.grind(true, 30);
+    log.ramps.length = 0;
+    audio.hush();
+    expect(log.ramps).toEqual([0, 0]);
   });
   it('schedules a bar of music ahead of time and stops cleanly', () => {
     vi.useFakeTimers();

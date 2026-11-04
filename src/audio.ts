@@ -513,6 +513,19 @@ export const audio = {
     grindGain.gain.setTargetAtTime(on ? 0.1 : 0, ctx.currentTime, 0.02);
     if (on) grindOsc.frequency.setTargetAtTime(260 + speed * 4, ctx.currentTime, 0.1);
   },
+  /** Silences the board sounds (carve hiss, powerslide, grind) when a run stops: a short clean fade to
+   *  true zero, with the filter left where it is so there is no "zip" while it fades. */
+  hush(): void {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    for (const p of [carveGain.gain, grindGain.gain]) {
+      p.cancelScheduledValues(t);
+      p.setValueAtTime(p.value, t);
+      p.linearRampToValueAtTime(0, t + 0.08);
+    }
+    carveFilt.frequency.cancelScheduledValues(t);
+    carveFilt.frequency.setValueAtTime(carveFilt.frequency.value, t);
+  },
   sfx(name: SfxName): void {
     if (!ctx) return;
     const t = ctx.currentTime;

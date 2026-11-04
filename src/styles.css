@@ -476,7 +476,7 @@
   @keyframes tadd { 0% { color: #3dff8a; transform: scale(1.25); text-shadow: 2px 2px 0 #0a5a2e, 0 0 22px #3dff8a; } 100% { transform: none; } }
   @media (prefers-reduced-motion: reduce) { #pupPop.show #pupBox, #hudTime.tadd { animation: none; } #pupPop.fly #pupBox { transition: none; } }
 
-  /* x2 and shield chips are the ones you play around: big enough to read out of the corner of your eye */
+  /* power chips (x2, low-grav, shield) are the ones you play around: big enough to read out of the corner of your eye */
   #pups { align-items: flex-end; }
   .pu.big { grid-template-columns: clamp(60px, 7vw, 90px) auto; grid-template-rows: auto 8px; column-gap: 10px; padding: 4px 14px 6px 6px; min-width: 0; }
   #pupsR .pu.big { grid-template-columns: clamp(60px, 7vw, 90px) auto; padding: 4px 6px 6px 14px; min-width: 0; }

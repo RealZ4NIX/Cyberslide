@@ -6,6 +6,7 @@
    main.js hands over what the tutorial needs from the game through attach(); everything on screen for it lives here. */
 
 import { ND } from './nd';
+import { rampSum } from './course';
 
 const SEG = ND.SEG || 70;
 const $ = (id) => document.getElementById(id);
@@ -28,6 +29,8 @@ const isGrab = (name) => { const d = ND.TRICKS.find((t) => t.name === name); ret
 const landed = (min) => (e, d) => e === 'land' && d.air >= min;
 const parts = (d) => d.parts || [d.name || ''];   // a mixed trick (spin + kickflip in one jump) lists every part
 const named = (re) => (e, d) => e === 'trick' && parts(d).some((n) => re.test(n));
+/* popping a jump while still on the ramp (or right at its lip) is hitting the ramp too, not just rolling off it */
+const onRamp = () => rampSum(P.x, P.s) > 0.1 || rampSum(P.x, P.s - 2) > 0.1;
 const wallSide = () => {
   const k0 = Math.floor(P.s / SEG);
   for (let k = k0; k <= k0 + 5; k++) for (const w of ND.seg(k).walls) if (w.s + w.len > P.s) return w.side;
@@ -69,7 +72,7 @@ const CH = [
     id: 'ramps', name: 'RAMPS & LANDINGS', cap: 22, plan: (i) => ['tutramp', 'clear', 'tutramp', 'clear', 'tutbar', 'clear'][(i + 5) % 6],
     sub: 'Ramps give you air. Good landings give you speed.',
     steps: [
-      { badge: 'RAMP', title: 'HIT THE RAMP', need: 1, ev: (e) => e === 'launch',
+      { badge: 'RAMP', title: 'HIT THE RAMP', need: 1, ev: (e) => e === 'launch' || (e === 'jump' && onRamp()),
         text: () => 'Ride straight into the ramp and fly.<br><span class="dim">Do a trick on the way up!</span>' },
       { badge: 'PERFECT', title: 'PERFECT LANDING', need: 3, ev: (e) => e === 'perfect',
         text: () => 'A ring shows where you will land. When it turns <b>gold</b>, tap ' + K('space') + ' just before touchdown.<br><span class="dim">A perfect landing fixes any rotation. Three of them.</span>' },
