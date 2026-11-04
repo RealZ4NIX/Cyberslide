@@ -15,7 +15,9 @@ let H = null, P = null;
 let ci = 0, si = 0, n = 0, ctx = {}, active = false, grace = 0, finishing = 0, results = [], armed = false, lastText = '', lastStep = -1, cardTimer = 0;
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const kbd = (t) => '<kbd>' + esc(t) + '</kbd>';
+// on a touch screen the four buttons get their own colours, like the buttons on screen (styles.css: .tt-text kbd.tb)
+const TOUCH_BTN = { JUMP: 1, FLIP: 1, GRAB: 1, SPIN: 1 };
+const kbd = (t) => (TOUCH_BTN[t] ? '<kbd class="tb ' + t.toLowerCase() + '">' : '<kbd>') + esc(t) + '</kbd>';
 const K = (a) => kbd(H ? H.key(a) : a);
 const GLYPH = { U: '↑', D: '↓', L: '←', R: '→', UL: '↖', UR: '↗', DL: '↙', DR: '↘' };
 /* "← then A" for a named trick, using the key the player has bound to flip / grab */

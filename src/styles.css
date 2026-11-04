@@ -638,6 +638,12 @@
      The controls themselves are not scaled, so offsets that line up with them are divided by the HUD scale. */
   body.touch #hud { zoom: var(--hudz, 1); }
   body.touch .ov, body.touch .rcard, body.touch #padNote { zoom: var(--menuz, 1); }
+  /* the notch: safe-area gaps are screen pixels, so inside the scaled menus and HUD they are divided by the scale,
+     or the notch would cover the left of every menu */
+  body.touch .ov { padding-left: calc((env(safe-area-inset-left, 0px) + 20px) / var(--menuz, 1)); padding-right: calc((env(safe-area-inset-right, 0px) + 20px) / var(--menuz, 1)); }
+  body.touch .rcard { right: calc((env(safe-area-inset-right, 0px) + 16px) / var(--menuz, 1)); }
+  body.touch .tl, body.touch #pups { left: calc(max(16px, env(safe-area-inset-left, 0px) + 6px) / var(--hudz, 1)); }
+  body.touch .tr, body.touch #feed, body.touch #hudRival, body.touch #pupsR { right: calc(max(16px, env(safe-area-inset-right, 0px) + 6px) / var(--hudz, 1)); }
   body.touch .tl, body.touch .tr { top: calc((6px + env(safe-area-inset-top, 0px)) / var(--hudz, 1)); }
   body.touch #specBox { width: var(--specw, 256px); }   /* 80% of the PC bar */
   body.touch .specbar { height: clamp(21px, 3.5vw, 30px); border-width: 2px; }
@@ -653,6 +659,13 @@
   body.touch #feed .toast:nth-last-child(n+5) { display: none; }   /* four lines, so the feed never runs into the buttons */
   body.touch #tut, body.touch #pupPop { top: calc((48px + env(safe-area-inset-top, 0px)) / var(--hudz, 1)); }
   body.touch #fps { top: calc(46px + env(safe-area-inset-top, 0px)); }
+  /* tutorial on touch: bigger text, no glow on the keys, and the four buttons as solid chips in their on-screen colours */
+  body.touch .tt-text { font-size: 17px; line-height: 1.45; }
+  body.touch .tt-text kbd { text-shadow: none; box-shadow: none; color: #e9fdff; }
+  body.touch .tt-text kbd.tb { --c: var(--cyan); color: var(--ink); background: var(--c); border-color: var(--c); border-bottom-width: 1px; font-style: italic; letter-spacing: .04em; }
+  body.touch .tt-text kbd.tb.flip { --c: var(--pink); }
+  body.touch .tt-text kbd.tb.grab { --c: var(--gold); }
+  body.touch .tt-text kbd.tb.spin { --c: #b07cff; }
   /* perfect landing on glass: a thin gold edge, so it is felt without a prompt in the middle of the screen */
   #pflash { inset: 0; opacity: 0; box-shadow: inset 0 0 0 3px rgba(255,210,63,.9), inset 0 0 40px rgba(255,210,63,.45); }
   #pflash.on { animation: flash .32s ease-out; }
